@@ -108,10 +108,12 @@ TLog_Result TLog_Run(void** widgets, uint32_t widgetCount) {
     for (i = 0, y = 0; i < widgetCount && y < screenHeight; ++i) {
         widget = (TLog_Widget*) widgets[i];
         for (j = 0; j < heights[i] && y < screenHeight; ++j, ++y) {
-            widget->data->getLine(widgets[i], j, buffer, maxWidth, &writtenLength, &isReversed);
+            widget->data->getLine(widgets[i], j, buffer, &writtenLength, &isReversed);
             writtenLength = writtenLength <= maxWidth ? writtenLength : maxWidth;
             attrset(isReversed ? A_REVERSE : A_NORMAL);
-            mvaddnstr(0, y, buffer, writtenLength);
+            mvaddnstr(y, 0, buffer, writtenLength);
+            attrset(A_NORMAL);
+            clrtoeol();
         }
     }
     refresh();

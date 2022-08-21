@@ -6,6 +6,7 @@
 typedef enum tlog_widget_action {
     TLOG_WIDGET_ACTION_ENTER,
     TLOG_WIDGET_ACTION_ESC,
+    TLOG_WIDGET_ACTION_BACKSPACE,
     TLOG_WIDGET_ACTION_UP,
     TLOG_WIDGET_ACTION_DOWN,
     TLOG_WIDGET_ACTION_LEFT,
@@ -14,9 +15,9 @@ typedef enum tlog_widget_action {
 
 typedef uint32_t (*TLog_Widget_GetPreferedWidth) (void* widget);
 typedef uint32_t (*TLog_Widget_SetMaximumWidth) (void* widget, uint32_t maxWidth, uint32_t screenHeight);
-typedef void (*TLog_Widget_GetLine) (void* widget, uint32_t lineY, char* buffer, uint32_t maxLength,
+typedef void (*TLog_Widget_GetLine) (void* widget, uint32_t lineY, char* buffer,
         uint32_t* writtenLength, int* isReversed);
-typedef int (*TLog_Widget_SetFocus) (void* widget, uint32_t* cursorX, uint32_t* cursorY);
+typedef void (*TLog_Widget_SetFocus) (void* widget, uint32_t* cursorX, uint32_t* cursorY);
 typedef void (*TLog_Widget_PutChar) (void* widget, char ch,
         uint32_t* cursorX, uint32_t* cursorY, uint32_t dirtyStart, uint32_t dirtyEnd);
 typedef int (*TLog_Widget_PutAction) (void* widget, TLog_Widget_Action action,

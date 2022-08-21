@@ -7,6 +7,7 @@ pkg_check_modules(NCURSES REQUIRED ncurses)
 
 add_library(tobylog
     src/label.c
+    src/text.c
     src/tobylog.c
 )
 target_compile_options(tobylog PUBLIC -g -Wall -Wextra -ansi -pedantic)

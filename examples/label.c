@@ -9,7 +9,7 @@ int main(void) {
 
     TLog_Init();
 
-    widgets[0] = TLog_Label_Create("This is a label! This is such a very beautiful label!");
+    widgets[0] = TLog_Label_Create("This is a label! This is such a very beautiful label!\nI agree!");
 
     TLog_Run(widgets, 1);
 
