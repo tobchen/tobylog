@@ -40,21 +40,18 @@ static const TLog_Widget_Data TLOG_LABEL_DATA = {
 };
 
 TLog_Label* TLog_Label_Create(char* text) {
-    size_t textSize;
-    TLog_Label* label;
-
     if (!text) {
         goto fail_arg;
     }
 
-    label = malloc(sizeof(TLog_Label));
+    TLog_Label* label = malloc(sizeof(TLog_Label));
     if (!label) {
         goto fail_label;
     }
 
     label->data = &TLOG_LABEL_DATA;
 
-    textSize = strlen(text) + 1;
+    size_t textSize = strlen(text) + 1;
     label->text = malloc(sizeof(char) * textSize);
     if (!label->text) {
         goto fail_text;
@@ -83,19 +80,11 @@ void TLog_Label_Destroy(TLog_Label* label) {
 }
 
 static uint32_t getPreferedWidth(void* widget) {
-    TLog_Label* label;
-    uint32_t preferedWidth;
-    uint32_t currentWidth;
-    char* ch;
+    TLog_Label* label = (TLog_Label*) widget;
     
-    if (!widget) {
-        return 0;
-    }
-    
-    label = (TLog_Label*) widget;
-    
-    preferedWidth = currentWidth = 0;
-    for (ch = label->text; *ch != 0; ++ch) {
+    uint32_t preferedWidth = 0;
+    uint32_t currentWidth = 0;
+    for (char* ch = label->text; *ch != 0; ++ch) {
         if (*ch == '\n') {
             currentWidth = 0;
         } else {
@@ -111,13 +100,9 @@ static uint32_t getPreferedWidth(void* widget) {
 }
 
 static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screenHeight) {
-    TLog_Label* label;
-    TLog_Label_Line* tmpLines;
-    TLog_Label_Line* line;
-
     UNUSED(screenHeight);
 
-    label = (TLog_Label*) widget;
+    TLog_Label* label = (TLog_Label*) widget;
 
     label->width = maxWidth;
 
@@ -130,12 +115,12 @@ static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screen
     }
 
     /* TODO Sexy word wrap */
+    TLog_Label_Line* line;
     for (label->lineCount = 1, line = label->lines, line->start = line->end = label->text;
             *line->end != 0; ++line->end) {
-        if (*line->end == '\n'
-                || line->end - line->start == label->width) {
+        if (*line->end == '\n' || line->end - line->start == label->width) {
             if (label->lineCount == label->lineCapacity) {
-                tmpLines = realloc(label->lines, sizeof(TLog_Label_Line) * label->lineCapacity * 2);
+                TLog_Label_Line* tmpLines = realloc(label->lines, sizeof(TLog_Label_Line) * label->lineCapacity * 2);
                 if (!tmpLines) {
                     return 0;
                 }
@@ -145,8 +130,7 @@ static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screen
             }
             ++line;
             ++label->lineCount;
-            line->start = line->end
-                    = *(line - 1)->end == '\n' ? (line - 1)->end + 1 : (line - 1)->end;
+            line->start = line->end = *(line - 1)->end == '\n' ? (line - 1)->end + 1 : (line - 1)->end;
         }
     }
 
@@ -155,9 +139,7 @@ static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screen
 
 static void getLine(void* widget, uint32_t lineY, char* buffer,
         uint32_t* lengthWritten, int* isReversed) {
-    TLog_Label* label;
-    
-    label = (TLog_Label*) widget;
+    TLog_Label* label = (TLog_Label*) widget;
 
     *isReversed = 0;
     *lengthWritten = label->lines[lineY].end - label->lines[lineY].start;

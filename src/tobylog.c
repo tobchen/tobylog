@@ -1,22 +1,23 @@
 #include "../include/tobylog.h"
 
-#include <stdlib.h>
-
 #include <ncurses.h>
 
 static uint32_t initCount = 0;
 
-TLog_Result TLog_Init(void) {
-    TLog_Result failure;
+static int drawLine(TLog_Widget* widget, char* buffer,
+        uint32_t widgetY, uint32_t fromY, uint32_t toY, uint32_t screenHeight);
+static int getAction(int input, TLog_Widget_Action* action);
 
+TLog_Result TLog_Init(void) {
     if (initCount > 0) {
         goto success;
     }
 
     if (!initscr()) {
-        failure = TLOG_RESULT_FAIL;
-        goto fail_curses;
+        endwin();
+        return TLOG_RESULT_FAIL;
     }
+
     cbreak();
     keypad(stdscr, TRUE);
     noecho();
@@ -24,10 +25,6 @@ TLog_Result TLog_Init(void) {
     success:
     ++initCount;
     return TLOG_RESULT_SUCCESS;
-
-    endwin();
-    fail_curses:
-    return failure;
 }
 
 void TLog_Terminate(void) {
@@ -43,30 +40,25 @@ void TLog_Terminate(void) {
     endwin();
 }
 
-TLog_Result TLog_Run(void** widgets, uint32_t widgetCount) {
+TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
     uint32_t screenWidth, screenHeight;
-    uint32_t* heights = NULL;
     char* buffer = NULL;
     size_t bufferLength = 0;
-    char* newBuffer;
-    TLog_Widget* widget;
-    uint32_t widgetWidth;
     uint32_t maxWidth;
     /* The index currently at line 0 */
-    uint32_t upperWidgetIndex;
-    uint32_t writtenLength;
-    int isReversed;
-    size_t i, j, y;
+    size_t currentWidgetIndex;
+    uint32_t currentWidgetY;
+    uint32_t cursorX, cursorY;
 
     if (initCount == 0) {
         goto fail_init;
     }
 
     if (widgetCount == 0 || !widgets) {
-        goto success;
+        goto immediate_success;
     }
 
-    heights = malloc(sizeof(uint32_t) * widgetCount);
+    uint32_t* heights = malloc(sizeof(uint32_t) * widgetCount);
     if (!heights) {
         goto fail_heights;
     }
@@ -77,15 +69,17 @@ TLog_Result TLog_Run(void** widgets, uint32_t widgetCount) {
     screenHeight = LINES;
 
     maxWidth = 0;
-    for (i = 0; i < widgetCount; ++i) {
-        widget = (TLog_Widget*) widgets[i];
-        widgetWidth = widget->data->getPreferedWidth(widgets[i]);
+    for (size_t i = 0; i < widgetCount; ++i) {
+        TLog_Widget* widget = (TLog_Widget*) widgets[i];
+
+        uint32_t widgetWidth = widget->data->getPreferedWidth(widgets[i]);
         maxWidth = widgetWidth > maxWidth ? widgetWidth : maxWidth;
     }
     maxWidth = screenWidth - 1 < maxWidth ? screenWidth - 1 : maxWidth;
 
-    for (i = 0; i < widgetCount; ++i) {
-        widget = (TLog_Widget*) widgets[i];
+    for (size_t i = 0; i < widgetCount; ++i) {
+        TLog_Widget* widget = (TLog_Widget*) widgets[i];
+
         heights[i] = widget->data->setMaximumWidth(widgets[i], maxWidth, screenHeight);
         if (heights[i] == 0) {
             goto fail_widget_height;
@@ -93,11 +87,11 @@ TLog_Result TLog_Run(void** widgets, uint32_t widgetCount) {
     }
 
     if (maxWidth > bufferLength) {
-        newBuffer = realloc(buffer, sizeof(char) * maxWidth);
-        if (!newBuffer) {
+        char* tmpBuffer = realloc(buffer, sizeof(char) * maxWidth);
+        if (!tmpBuffer) {
             goto fail_buffer;
         }
-        buffer = newBuffer;
+        buffer = tmpBuffer;
         bufferLength = maxWidth;
     }
 
@@ -105,27 +99,76 @@ TLog_Result TLog_Run(void** widgets, uint32_t widgetCount) {
 
     attrset(A_NORMAL);
     clear();
-    for (i = 0, y = 0; i < widgetCount && y < screenHeight; ++i) {
-        widget = (TLog_Widget*) widgets[i];
-        for (j = 0; j < heights[i] && y < screenHeight; ++j, ++y) {
-            widget->data->getLine(widgets[i], j, buffer, &writtenLength, &isReversed);
-            writtenLength = writtenLength <= maxWidth ? writtenLength : maxWidth;
-            attrset(isReversed ? A_REVERSE : A_NORMAL);
-            mvaddnstr(y, 0, buffer, writtenLength);
-            attrset(A_NORMAL);
-            clrtoeol();
+    for (uint32_t i = 0, widgetY = 0; i < widgetCount; widgetY += heights[i], ++i) {
+        if (drawLine((TLog_Widget*) widgets[i], buffer, widgetY, 0, heights[i], screenHeight)) {
+            break;
         }
     }
-    refresh();
 
     /************** Action **************/
 
-    upperWidgetIndex = 0;
+    currentWidgetIndex = 0;
+    currentWidgetY = 0;
+    for (; currentWidgetIndex < widgetCount; currentWidgetY += heights[currentWidgetIndex], ++currentWidgetIndex) {
+        TLog_Widget* widget = (TLog_Widget*) widgets[currentWidgetIndex];
 
+        if (currentWidgetY >= screenHeight) {
+            // TODO Scrolling
+        }
+
+        if (widget->data->setFocus) {
+            widget->data->setFocus(widget, &cursorX, &cursorY);
+            move(currentWidgetY + cursorY, cursorX);
+            break;
+        }
+    }
+
+    refresh();
+
+    if (currentWidgetIndex >= widgetCount) {
+        goto finished_success;
+    }
+
+    while (1) {
+        TLog_Widget* widget = (TLog_Widget*) widgets[currentWidgetIndex];
+
+        uint32_t dirtyStart = 0;
+        uint32_t dirtyEnd = 0;
+
+        int input = getch();
+        TLog_Widget_Action action;
+        if (input >= 32 && input <= 126 && widget->data->putChar) {
+            widget->data->putChar(widget, (char) input, &cursorX, &cursorY, &dirtyStart, &dirtyEnd);
+        } else if (getAction(input, &action) && 
+                (!widget->data->putAction
+                        || !widget->data->putAction(widget, action, &cursorX, &cursorY, &dirtyStart, &dirtyEnd))) {
+            goto take_action;
+        }
+
+        drawLine(widget, buffer, currentWidgetY, dirtyStart, dirtyEnd, screenHeight);
+
+        move(currentWidgetY + cursorY, cursorX);
+        refresh();
+        continue;
+
+        take_action:
+        if (action == TLOG_WIDGET_ACTION_ENTER) {
+            goto finished_success;
+        } else if (action == TLOG_WIDGET_ACTION_ESC) {
+            goto finished_cancel;
+        }
+    }
+
+    finished_success:
     free(buffer);
     free(heights);
-    success:
+    immediate_success:
     return TLOG_RESULT_SUCCESS;
+
+    finished_cancel:
+    free(buffer);
+    free(heights);
+    return TLOG_RESULT_CANCEL;
 
     fail_widget_height:
     fail_buffer:
@@ -134,4 +177,35 @@ TLog_Result TLog_Run(void** widgets, uint32_t widgetCount) {
     free(buffer);
     free(heights);
     return TLOG_RESULT_FAIL;
+}
+
+static int drawLine(TLog_Widget* widget, char* buffer,
+        uint32_t widgetY, uint32_t fromY, uint32_t toY, uint32_t screenHeight) {
+    for (uint32_t y = fromY; y < toY; ++y) {
+        uint32_t screenY = widgetY + y;
+
+        if (screenY >= screenHeight) {
+            return 1;
+        }
+
+        int isReversed;
+        uint32_t writtenLength;
+        widget->data->getLine(widget, y, buffer, &writtenLength, &isReversed);
+
+        attrset(isReversed ? A_REVERSE : A_NORMAL);
+        mvaddnstr(screenY, 0, buffer, writtenLength);
+        attrset(A_NORMAL);
+        clrtoeol();
+    }
+
+    return 0;
+}
+
+static int getAction(int input, TLog_Widget_Action* action) {
+    if (input == '\n') {
+        *action = TLOG_WIDGET_ACTION_ENTER;
+    } else {
+        return 0;
+    }
+    return 1;
 }

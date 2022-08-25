@@ -10,10 +10,16 @@ add_library(tobylog
     src/text.c
     src/tobylog.c
 )
-target_compile_options(tobylog PUBLIC -g -Wall -Wextra -ansi -pedantic)
+target_compile_options(tobylog PUBLIC -g -Wall -Wextra -pedantic)
 
 add_executable(label
     examples/label.c
 )
 target_link_libraries(label PUBLIC tobylog ${NCURSES_LIBRARIES})
-target_compile_options(label PUBLIC -g -Wall -Wextra -ansi -pedantic)
+target_compile_options(label PUBLIC -g -Wall -Wextra -pedantic)
+
+add_executable(text
+    examples/text.c
+)
+target_link_libraries(text PUBLIC tobylog ${NCURSES_LIBRARIES})
+target_compile_options(text PUBLIC -g -Wall -Wextra -pedantic)

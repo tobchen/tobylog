@@ -3,27 +3,30 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Thanks! https://stackoverflow.com/a/3599170 */
+#define UNUSED(x) (void)(x)
+
 struct tlog_text {
     const TLog_Widget_Data* data;
 
-    uint32_t widgetWidth;
+    uint32_t width;
 
     char* text;
-    uint32_t currentWidth;
-    uint32_t maximumWidth;
+    uint32_t textLength;
+    uint32_t textCapacity;
 
     int consumeEnter;
 };
 
 static uint32_t getPreferedWidth(void* widget);
 static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screenHeight);
-static void getLine(void* widget, uint32_t lineY, char* buffer, uint32_t maxLength,
-        uint32_t* writtenLength, int* isReversed);
+static void getLine(void* widget, uint32_t lineY, char* buffer,
+        uint32_t* lengthWritten, int* isReversed);
 static void setFocus(void* widget, uint32_t* cursorX, uint32_t* cursorY);
 static void putChar(void* widget, char ch,
-        uint32_t* cursorX, uint32_t* cursorY, uint32_t dirtyStart, uint32_t dirtyEnd);
+        uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd);
 static int putAction(void* widget, TLog_Widget_Action action,
-        uint32_t* cursorX, uint32_t* cursorY, uint32_t dirtyStart, uint32_t dirtyEnd);
+        uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd);
 
 static const TLog_Widget_Data TLOG_TEXT_DATA = {
     &getPreferedWidth,
@@ -35,9 +38,7 @@ static const TLog_Widget_Data TLOG_TEXT_DATA = {
 };
 
 TLog_Text* TLog_Text_Create(uint32_t maximumWidth) {
-    TLog_Text* text;
-
-    text = malloc(sizeof(TLog_Text));
+    TLog_Text* text = malloc(sizeof(TLog_Text));
     if (!text) {
         goto fail_text;
     }
@@ -48,8 +49,8 @@ TLog_Text* TLog_Text_Create(uint32_t maximumWidth) {
     if (!text) {
         goto fail_text_text;
     }
-    text->maximumWidth = maximumWidth;
-    text->currentWidth = 0;
+    text->textCapacity = maximumWidth;
+    text->textLength = 0;
 
     text->consumeEnter = 0;
 
@@ -78,33 +79,85 @@ void TLog_Text_SetConsumeEnter(TLog_Text* text, int consumeEnter) {
 char* TLog_Text_GetText(TLog_Text* text) {
     char* result = NULL;
     if (text) {
-        char* result = malloc(sizeof(char) * (text->currentWidth + 1));
+        result = malloc(sizeof(char) * (text->textLength + 1));
         if (result) {
-            memcpy(result, text->text, sizeof(char) * text->currentWidth);
-            result[text->currentWidth] = 0;
+            memcpy(result, text->text, sizeof(char) * text->textLength);
+            result[text->textLength] = 0;
         }
     }
     return result;
 }
 
 static uint32_t getPreferedWidth(void* widget) {
-    return ((TLog_Text*) widget)->maximumWidth + 1;
+    return ((TLog_Text*) widget)->textCapacity + 1;
 }
 
 static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screenHeight) {
+    UNUSED(screenHeight);
+
     TLog_Text* text = (TLog_Text*) widget;
-    text->widgetWidth = maxWidth < text->maximumWidth + 1 ? maxWidth : text->maximumWidth + 1;
+    text->width = maxWidth < text->textCapacity + 1 ? maxWidth : text->textCapacity + 1;
     return 1;
 }
 
-static void getLine(void* widget, uint32_t lineY, char* buffer, uint32_t maxLength,
-        uint32_t* writtenLength, int* isReversed) {
-    
+static void getLine(void* widget, uint32_t lineY, char* buffer,
+        uint32_t* lengthWritten, int* isReversed) {
+    UNUSED(lineY);
+
+    TLog_Text* text = (TLog_Text*) widget;
+
+    *lengthWritten = text->width;
+    *isReversed = 1;
+    if (text->width > text->textLength) {
+        memcpy(buffer, text->text, sizeof(char) * text->textLength);
+        memset(&buffer[text->textLength], ' ', sizeof(char) * (text->width - text->textLength));
+    } else {
+        memcpy(buffer, &text->text[text->textLength - text->width + 1], sizeof(char) * (text->width - 1));
+        buffer[text->width - 1] = ' ';
+    }
 }
 
-static void setFocus(void* widget, uint32_t* cursorX, uint32_t* cursorY);
+static void setFocus(void* widget, uint32_t* cursorX, uint32_t* cursorY) {
+    TLog_Text* text = (TLog_Text*) widget;
+    *cursorX = text->textLength < text->width ? text->textLength : text->width - 1;
+    *cursorY = 0;
+}
+
 static void putChar(void* widget, char ch,
-        uint32_t* cursorX, uint32_t* cursorY, uint32_t dirtyStart, uint32_t dirtyEnd);
+        uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd) {
+    TLog_Text* text = (TLog_Text*) widget;
+
+    *dirtyStart = *dirtyEnd = 0;
+
+    if (text->textLength < text->textCapacity) {
+        text->text[text->textLength] = ch;
+        ++text->textLength;
+
+        setFocus(text, cursorX, cursorY);
+        
+        *dirtyEnd = 1;
+    }
+}
         
 static int putAction(void* widget, TLog_Widget_Action action,
-        uint32_t* cursorX, uint32_t* cursorY, uint32_t dirtyStart, uint32_t dirtyEnd);
+        uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd) {
+    TLog_Text* text = (TLog_Text*) widget;
+    int consumed = 0;
+
+    *dirtyStart = *dirtyEnd = 0;
+
+    if (action == TLOG_WIDGET_ACTION_BACKSPACE) {
+        if (text->textLength > 0) {
+            --text->textLength;
+
+            setFocus(text, cursorX, cursorY);
+
+            *dirtyEnd = 1;
+        }
+        consumed = 1;
+    } else if (text->consumeEnter && action == TLOG_WIDGET_ACTION_ENTER) {
+        consumed = 1;
+    }
+
+    return consumed;
+}

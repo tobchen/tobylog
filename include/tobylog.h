@@ -1,6 +1,8 @@
 #ifndef TLOG_INCLUDE_TOBYLOG_H
 #define TLOG_INCLUDE_TOBYLOG_H
 
+#include <stdlib.h>
+
 #include "../include/widget.h"
 
 typedef enum tlog_result {
@@ -12,6 +14,6 @@ typedef enum tlog_result {
 TLog_Result TLog_Init(void);
 void TLog_Terminate(void);
 
-TLog_Result TLog_Run(void** widgets, uint32_t widgetCount);
+TLog_Result TLog_Run(void** widgets, size_t widgetCount);
 
 #endif

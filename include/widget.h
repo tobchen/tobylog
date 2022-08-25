@@ -10,7 +10,8 @@ typedef enum tlog_widget_action {
     TLOG_WIDGET_ACTION_UP,
     TLOG_WIDGET_ACTION_DOWN,
     TLOG_WIDGET_ACTION_LEFT,
-    TLOG_WIDGET_ACTION_RIGHT
+    TLOG_WIDGET_ACTION_RIGHT,
+    TLOG_WIDGET_ACTION_TAB
 } TLog_Widget_Action;
 
 typedef uint32_t (*TLog_Widget_GetPreferedWidth) (void* widget);
@@ -19,9 +20,9 @@ typedef void (*TLog_Widget_GetLine) (void* widget, uint32_t lineY, char* buffer,
         uint32_t* writtenLength, int* isReversed);
 typedef void (*TLog_Widget_SetFocus) (void* widget, uint32_t* cursorX, uint32_t* cursorY);
 typedef void (*TLog_Widget_PutChar) (void* widget, char ch,
-        uint32_t* cursorX, uint32_t* cursorY, uint32_t dirtyStart, uint32_t dirtyEnd);
+        uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd);
 typedef int (*TLog_Widget_PutAction) (void* widget, TLog_Widget_Action action,
-        uint32_t* cursorX, uint32_t* cursorY, uint32_t dirtyStart, uint32_t dirtyEnd);
+        uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd);
 
 typedef struct tlog_widget_data {
     TLog_Widget_GetPreferedWidth getPreferedWidth;
