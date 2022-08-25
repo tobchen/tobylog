@@ -1,6 +1,7 @@
 #include "../include/tobylog.h"
 
 #include <ncurses.h>
+#include <string.h>
 
 static uint32_t initCount = 0;
 
@@ -86,13 +87,14 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
         }
     }
 
-    if (maxWidth > bufferLength) {
-        char* tmpBuffer = realloc(buffer, sizeof(char) * maxWidth);
+    if (maxWidth + 1 > bufferLength) {
+        char* tmpBuffer = realloc(buffer, sizeof(char) * (maxWidth + 1));
         if (!tmpBuffer) {
             goto fail_buffer;
         }
+        memset(tmpBuffer + bufferLength, 0, sizeof(char) * (maxWidth + 1 - bufferLength));
         buffer = tmpBuffer;
-        bufferLength = maxWidth;
+        bufferLength = maxWidth + 1;
     }
 
     /************** Initial Draw **************/
