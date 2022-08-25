@@ -1,11 +1,19 @@
+/**
+ * @file label.c
+ * @author Tobias Heukäufer
+ * @brief A label implementation.
+ */
+
 #include "../include/label.h"
 
 #include <stdlib.h>
 #include <string.h>
 
+/** @brief Initial capacity of a label's line meta buffer. */
 #define INIT_LINE_CAPACITY 4
 
 /* Thanks! https://stackoverflow.com/a/3599170 */
+/** @brief Marks unused function parameters to prevent unused warnings. */
 #define UNUSED(x) (void)(x)
 
 typedef struct tlog_label_line {
@@ -30,6 +38,7 @@ static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screen
 static void getLine(void* widget, uint32_t lineY, char* buffer,
         uint32_t* lengthWritten, int* isReversed);
 
+/** @brief Label widget functions. */
 static const TLog_Widget_Data TLOG_LABEL_DATA = {
     &getPreferedWidth,
     &setMaximumWidth,

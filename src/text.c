@@ -22,7 +22,7 @@ static uint32_t getPreferedWidth(void* widget);
 static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screenHeight);
 static void getLine(void* widget, uint32_t lineY, char* buffer,
         uint32_t* lengthWritten, int* isReversed);
-static void setFocus(void* widget, uint32_t* cursorX, uint32_t* cursorY);
+static void setFocus(void* widget, int fromAbove, uint32_t* cursorX, uint32_t* cursorY);
 static void putChar(void* widget, char ch,
         uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd);
 static int putAction(void* widget, TLog_Widget_Action action,
@@ -117,7 +117,9 @@ static void getLine(void* widget, uint32_t lineY, char* buffer,
     }
 }
 
-static void setFocus(void* widget, uint32_t* cursorX, uint32_t* cursorY) {
+static void setFocus(void* widget, int fromAbove, uint32_t* cursorX, uint32_t* cursorY) {
+    UNUSED(fromAbove);
+
     TLog_Text* text = (TLog_Text*) widget;
     *cursorX = text->textLength < text->width ? text->textLength : text->width - 1;
     *cursorY = 0;
@@ -133,7 +135,7 @@ static void putChar(void* widget, char ch,
         text->text[text->textLength] = ch;
         ++text->textLength;
 
-        setFocus(text, cursorX, cursorY);
+        setFocus(text, 0, cursorX, cursorY);
         
         *dirtyEnd = 1;
     }
@@ -150,12 +152,12 @@ static int putAction(void* widget, TLog_Widget_Action action,
         if (text->textLength > 0) {
             --text->textLength;
 
-            setFocus(text, cursorX, cursorY);
+            setFocus(text, 0, cursorX, cursorY);
 
             *dirtyEnd = 1;
         }
         consumed = 1;
-    } else if (text->consumeEnter && action == TLOG_WIDGET_ACTION_ENTER) {
+    } else if (text->consumeEnter && action == TLOG_WIDGET_ACTION_RETURN) {
         consumed = 1;
     }
 

@@ -1,12 +1,38 @@
+/**
+ * @file tobylog.c
+ * @author Tobias Heukäufer
+ * @brief Implementation of general Tobylog management.
+ */
+
 #include "../include/tobylog.h"
 
 #include <ncurses.h>
 #include <string.h>
 
+/** @brief Number of times @ref TLog_Init() was called. */
 static uint32_t initCount = 0;
 
-static int drawLine(TLog_Widget* widget, char* buffer,
+/**
+ * @brief Draws some of widget's lines.
+ * 
+ * @param widget The widget whose lines to draw
+ * @param buffer The buffer to be used to temporarily store each line
+ * @param widgetY The widget's Y position in screen space
+ * @param fromY The index of the first line to draw
+ * @param toY The index after the last line to draw
+ * @param screenHeight The screen's height
+ * @return 0 if all lines fit the screen, or 1 else
+ */
+static int drawLines(TLog_Widget* widget, char* buffer,
         uint32_t widgetY, uint32_t fromY, uint32_t toY, uint32_t screenHeight);
+
+/**
+ * @brief Derives an action value from an ncurses input.
+ * 
+ * @param input ncurses input
+ * @param action Where to put the action value
+ * @return 1 if an action value was derived, or 0 else 
+ */
 static int getAction(int input, TLog_Widget_Action* action);
 
 TLog_Result TLog_Init(void) {
@@ -25,7 +51,7 @@ TLog_Result TLog_Init(void) {
 
     success:
     ++initCount;
-    return TLOG_RESULT_SUCCESS;
+    return TLOG_RESULT_OK;
 }
 
 void TLog_Terminate(void) {
@@ -102,7 +128,7 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
     attrset(A_NORMAL);
     clear();
     for (uint32_t i = 0, widgetY = 0; i < widgetCount; widgetY += heights[i], ++i) {
-        if (drawLine((TLog_Widget*) widgets[i], buffer, widgetY, 0, heights[i], screenHeight)) {
+        if (drawLines((TLog_Widget*) widgets[i], buffer, widgetY, 0, heights[i], screenHeight)) {
             break;
         }
     }
@@ -119,7 +145,7 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
         }
 
         if (widget->data->setFocus) {
-            widget->data->setFocus(widget, &cursorX, &cursorY);
+            widget->data->setFocus(widget, 1, &cursorX, &cursorY);
             move(currentWidgetY + cursorY, cursorX);
             break;
         }
@@ -147,14 +173,14 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
             goto take_action;
         }
 
-        drawLine(widget, buffer, currentWidgetY, dirtyStart, dirtyEnd, screenHeight);
+        drawLines(widget, buffer, currentWidgetY, dirtyStart, dirtyEnd, screenHeight);
 
         move(currentWidgetY + cursorY, cursorX);
         refresh();
         continue;
 
         take_action:
-        if (action == TLOG_WIDGET_ACTION_ENTER) {
+        if (action == TLOG_WIDGET_ACTION_RETURN) {
             goto finished_success;
         } else if (action == TLOG_WIDGET_ACTION_ESC) {
             goto finished_cancel;
@@ -165,7 +191,7 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
     free(buffer);
     free(heights);
     immediate_success:
-    return TLOG_RESULT_SUCCESS;
+    return TLOG_RESULT_OK;
 
     finished_cancel:
     free(buffer);
@@ -181,7 +207,7 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
     return TLOG_RESULT_FAIL;
 }
 
-static int drawLine(TLog_Widget* widget, char* buffer,
+static int drawLines(TLog_Widget* widget, char* buffer,
         uint32_t widgetY, uint32_t fromY, uint32_t toY, uint32_t screenHeight) {
     for (uint32_t y = fromY; y < toY; ++y) {
         uint32_t screenY = widgetY + y;
@@ -205,7 +231,7 @@ static int drawLine(TLog_Widget* widget, char* buffer,
 
 static int getAction(int input, TLog_Widget_Action* action) {
     if (input == '\n') {
-        *action = TLOG_WIDGET_ACTION_ENTER;
+        *action = TLOG_WIDGET_ACTION_RETURN;
     } else {
         return 0;
     }
