@@ -8,6 +8,7 @@
 #define TLOG_INCLUDE_WIDGET_H
 
 #include <stdint.h>
+#include <glib.h>
 
 /** @brief Action values. */
 typedef enum tlog_widget_action {
@@ -52,18 +53,17 @@ typedef uint32_t (*TLog_Widget_GetPreferedWidth) (void* widget);
 typedef uint32_t (*TLog_Widget_SetMaximumWidth) (void* widget, uint32_t maxWidth, uint32_t screenHeight);
 
 /**
- * @brief Stores a widget's line in a buffer.
+ * @brief Draws a widget's line to the screen.
  * 
- * The buffer is guaranteed to be at least as wide as the maximum width set by @ref TLog_Widget_SetMaximumWidth.
+ * When called, the cursor is at the position the layout manager expects the widget to draw its line at,
+ * and the terminal's attributes are set to normal.
+ * Drawing longer lines than was previously set by @ref TLog_Widget_SetMaximumWidth may lead to
+ * display errors.
  * 
  * @param widget The widget to query
- * @param lineY Widget's line to store
- * @param buffer Buffer to store the line
- * @param writtenLength Where to store the length written to the buffer
- * @param isReversed Where to store wether this line is to be displayed reversed (true) or not (false) 
+ * @param lineY Widget's line to store 
  */
-typedef void (*TLog_Widget_GetLine) (void* widget, uint32_t lineY, char* buffer,
-        uint32_t* writtenLength, int* isReversed);
+typedef void (*TLog_Widget_DrawLine) (void* widget, uint32_t lineY);
 
 /**
  * @brief Notifies a widget of having focus.
@@ -108,8 +108,8 @@ typedef struct tlog_widget_data {
     TLog_Widget_GetPreferedWidth getPreferedWidth;
     /** @brief @copybrief TLog_Widget_SetMaximumWidth */
     TLog_Widget_SetMaximumWidth setMaximumWidth;
-    /** @brief @copybrief TLog_Widget_GetLine */
-    TLog_Widget_GetLine getLine;
+    /** @brief @copybrief TLog_Widget_DrawLine */
+    TLog_Widget_DrawLine drawLine;
     /**
      * @brief @copybrief TLog_Widget_SetFocus
      * 

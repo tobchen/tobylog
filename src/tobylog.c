@@ -23,8 +23,7 @@ static uint32_t initCount = 0;
  * @param screenHeight The screen's height
  * @return 0 if all lines fit the screen, or 1 else
  */
-static int drawLines(TLog_Widget* widget, char* buffer,
-        uint32_t widgetY, uint32_t fromY, uint32_t toY, uint32_t screenHeight);
+static int drawLines(TLog_Widget* widget, uint32_t widgetY, uint32_t fromY, uint32_t toY, uint32_t screenHeight);
 
 /**
  * @brief Derives an action value from an ncurses input.
@@ -69,8 +68,6 @@ void TLog_Terminate(void) {
 
 TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
     uint32_t screenWidth, screenHeight;
-    char* buffer = NULL;
-    size_t bufferLength = 0;
     uint32_t maxWidth;
     /* The index currently at line 0 */
     size_t currentWidgetIndex;
@@ -113,22 +110,12 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
         }
     }
 
-    if (maxWidth + 1 > bufferLength) {
-        char* tmpBuffer = realloc(buffer, sizeof(char) * (maxWidth + 1));
-        if (!tmpBuffer) {
-            goto fail_buffer;
-        }
-        memset(tmpBuffer + bufferLength, 0, sizeof(char) * (maxWidth + 1 - bufferLength));
-        buffer = tmpBuffer;
-        bufferLength = maxWidth + 1;
-    }
-
     /************** Initial Draw **************/
 
     attrset(A_NORMAL);
     clear();
     for (uint32_t i = 0, widgetY = 0; i < widgetCount; widgetY += heights[i], ++i) {
-        if (drawLines((TLog_Widget*) widgets[i], buffer, widgetY, 0, heights[i], screenHeight)) {
+        if (drawLines((TLog_Widget*) widgets[i], widgetY, 0, heights[i], screenHeight)) {
             break;
         }
     }
@@ -173,7 +160,7 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
             goto take_action;
         }
 
-        drawLines(widget, buffer, currentWidgetY, dirtyStart, dirtyEnd, screenHeight);
+        drawLines(widget, currentWidgetY, dirtyStart, dirtyEnd, screenHeight);
 
         move(currentWidgetY + cursorY, cursorX);
         refresh();
@@ -188,27 +175,22 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
     }
 
     finished_success:
-    free(buffer);
     free(heights);
     immediate_success:
     return TLOG_RESULT_OK;
 
     finished_cancel:
-    free(buffer);
     free(heights);
     return TLOG_RESULT_CANCEL;
 
     fail_widget_height:
-    fail_buffer:
     fail_heights:
     fail_init:
-    free(buffer);
     free(heights);
     return TLOG_RESULT_FAIL;
 }
 
-static int drawLines(TLog_Widget* widget, char* buffer,
-        uint32_t widgetY, uint32_t fromY, uint32_t toY, uint32_t screenHeight) {
+static int drawLines(TLog_Widget* widget, uint32_t widgetY, uint32_t fromY, uint32_t toY, uint32_t screenHeight) {
     for (uint32_t y = fromY; y < toY; ++y) {
         uint32_t screenY = widgetY + y;
 
@@ -216,12 +198,10 @@ static int drawLines(TLog_Widget* widget, char* buffer,
             return 1;
         }
 
-        int isReversed;
-        uint32_t writtenLength;
-        widget->data->getLine(widget, y, buffer, &writtenLength, &isReversed);
+        attrset(A_NORMAL);
+        move(screenY, 0);
+        widget->data->drawLine(widget, y);
 
-        attrset(isReversed ? A_REVERSE : A_NORMAL);
-        mvaddnstr(screenY, 0, buffer, writtenLength);
         attrset(A_NORMAL);
         clrtoeol();
     }

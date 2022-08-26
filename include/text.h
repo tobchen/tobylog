@@ -18,7 +18,7 @@ typedef struct tlog_text TLog_Text;
  * @param maximumWidth Maximum width of text the field can hold
  * @return A new text field, or NULL on error
  */
-TLog_Text* TLog_Text_Create(uint32_t maximumWidth);
+TLog_Text* TLog_Text_Create(size_t maximumWidth);
 
 /**
  * @brief Destroys a text field.
@@ -49,6 +49,8 @@ void TLog_Text_SetText(TLog_Text* text, char* value);
 
 /**
  * @brief Returns a text field's text.
+ * 
+ * The returned text will be newly allocated and is owned by the caller (free with g_free).
  * 
  * @param text The text field
  * @return The text field's text, or NULL on error
