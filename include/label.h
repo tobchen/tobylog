@@ -9,11 +9,11 @@
 
 #include "widget.h"
 
-/** @brief A label.  */
+/** @brief A label. */
 typedef struct tlog_label TLog_Label;
 
 /**
- * @brief Create a label.
+ * @brief Creates a label.
  * 
  * @param text Label's text
  * @return A new label, or NULL on error
@@ -21,7 +21,7 @@ typedef struct tlog_label TLog_Label;
 TLog_Label* TLog_Label_Create(char* text);
 
 /**
- * @brief Destroy a label.
+ * @brief Destroys a label.
  * 
  * @param label The label to destroy
  */

@@ -16,20 +16,29 @@
 /** @brief Marks unused function parameters to prevent unused warnings. */
 #define UNUSED(x) (void)(x)
 
+/** @brief A label's line start and ending. */
 typedef struct tlog_label_line {
+    /** @brief First character in line. */
     char* start;
+    /** @brief The character after the last character in line. */
     char* end;
 } TLog_Label_Line;
 
 struct tlog_label {
+    /** @brief Widget data. */
     const TLog_Widget_Data* data;
 
+    /** @brief Text. */
     char* text;
 
+    /** @brief Line starts and endings. */
     TLog_Label_Line* lines;
+    /** @brief Number of lines. */
     size_t lineCount;
+    /** @brief Capacity of line meta buffer. */
     size_t lineCapacity;
 
+    /** @brief Width. */
     uint32_t width;
 };
 

@@ -1,21 +1,34 @@
+/**
+ * @file text.c
+ * @author Tobias Heukäufer
+ * @brief A text field implementation.
+ */
+
 #include "../include/text.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 /* Thanks! https://stackoverflow.com/a/3599170 */
+/** @brief Marks unused function parameters to prevent unused warnings. */
 #define UNUSED(x) (void)(x)
 
 struct tlog_text {
+    /** @brief Widget data. */
     const TLog_Widget_Data* data;
 
+    /** @brief Width. */
     uint32_t width;
 
+    /** @brief Text. */
     char* text;
+    /** @brief Text length. */
     uint32_t textLength;
+    /** @brief Text buffer's capacity. */
     uint32_t textCapacity;
 
-    int consumeEnter;
+    /** @brief Wether to consume Return input (true) or not (false). */
+    int consumeReturn;
 };
 
 static uint32_t getPreferedWidth(void* widget);
@@ -52,7 +65,7 @@ TLog_Text* TLog_Text_Create(uint32_t maximumWidth) {
     text->textCapacity = maximumWidth;
     text->textLength = 0;
 
-    text->consumeEnter = 0;
+    text->consumeReturn = 0;
 
     return text;
 
@@ -70,9 +83,18 @@ void TLog_Text_Destroy(TLog_Text* text) {
     }
 }
 
-void TLog_Text_SetConsumeEnter(TLog_Text* text, int consumeEnter) {
+void TLog_Text_SetConsumeReturn(TLog_Text* text, int consumeReturn) {
     if (text) {
-        text->consumeEnter = consumeEnter;
+        text->consumeReturn = consumeReturn;
+    }
+}
+
+void TLog_Text_SetText(TLog_Text* text, char* value) {
+    if (text) {
+        text->textLength = 0;
+        for (size_t i = text->textCapacity; i > 0 && *value != 0; ++i, ++value) {
+            text->text[text->textLength++] = *value;
+        }
     }
 }
 
@@ -157,7 +179,7 @@ static int putAction(void* widget, TLog_Widget_Action action,
             *dirtyEnd = 1;
         }
         consumed = 1;
-    } else if (text->consumeEnter && action == TLOG_WIDGET_ACTION_RETURN) {
+    } else if (text->consumeReturn && action == TLOG_WIDGET_ACTION_RETURN) {
         consumed = 1;
     }
 

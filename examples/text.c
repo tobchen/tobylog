@@ -14,6 +14,7 @@ int main(void) {
         TLog_Label_Create("Surname:"),
         TLog_Text_Create(50)
     };
+
     TLog_Run(widgets, 4);
 
     char* firstName = TLog_Text_GetText(widgets[1]);
