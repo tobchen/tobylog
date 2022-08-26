@@ -186,7 +186,7 @@ static int putAction(void* widget, TLog_Widget_Action action,
             --text->utf8len;
 
             if (text->firstVis > 0) {
-                text->firstVis -= g_utf8_find_prev_char(text->text->str, &text->text->str[text->firstVis])
+                text->firstVis = g_utf8_find_prev_char(text->text->str, &text->text->str[text->firstVis])
                         - text->text->str;
             }
 

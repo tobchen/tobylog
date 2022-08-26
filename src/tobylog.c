@@ -212,6 +212,8 @@ static int drawLines(TLog_Widget* widget, uint32_t widgetY, uint32_t fromY, uint
 static int getAction(int input, TLog_Widget_Action* action) {
     if (input == '\n') {
         *action = TLOG_WIDGET_ACTION_RETURN;
+    } else if (input == KEY_BACKSPACE) {
+        *action = TLOG_WIDGET_ACTION_BACKSPACE;
     } else {
         return 0;
     }
