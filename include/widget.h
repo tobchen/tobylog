@@ -45,6 +45,9 @@ typedef uint32_t (*TLog_Widget_GetPreferedWidth) (void* widget);
  * that might fail, as later widget calls won't check for errors, meaning from here on, widgets are expected
  * to run smoothly.
  * 
+ * If the returned height is greater than the given screen height, this run will end as cancelled,
+ * as Tobylog can currently not handle widgets larger than the screen.
+ * 
  * @param widget The widget to configure
  * @param maxWidth Maximum width
  * @param screenHeight Screen height

@@ -47,6 +47,7 @@ TLog_Result TLog_Init(void) {
     cbreak();
     keypad(stdscr, TRUE);
     noecho();
+    scrollok(stdscr, TRUE);
 
     success:
     ++initCount;
@@ -69,9 +70,8 @@ void TLog_Terminate(void) {
 TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
     uint32_t screenWidth, screenHeight;
     uint32_t maxWidth;
-    /* The index currently at line 0 */
-    size_t currentWidgetIndex;
-    uint32_t currentWidgetY;
+    size_t currentWidget;
+    uint32_t currentWidgetY; // in screen space
     uint32_t cursorX, cursorY;
 
     if (initCount == 0) {
@@ -107,6 +107,8 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
         heights[i] = widget->data->setMaximumWidth(widgets[i], maxWidth, screenHeight);
         if (heights[i] == 0) {
             goto fail_widget_height;
+        } else if (heights[i] > screenHeight) {
+            goto finished_cancel;
         }
     }
 
@@ -120,15 +122,18 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
         }
     }
 
-    /************** Action **************/
+    /************** Find Focusable Widget **************/
 
-    currentWidgetIndex = 0;
-    currentWidgetY = 0;
-    for (; currentWidgetIndex < widgetCount; currentWidgetY += heights[currentWidgetIndex], ++currentWidgetIndex) {
-        TLog_Widget* widget = (TLog_Widget*) widgets[currentWidgetIndex];
+    for (currentWidget = currentWidgetY = 0;
+            currentWidget < widgetCount;
+            currentWidgetY += heights[currentWidget], ++currentWidget) {
+        TLog_Widget* widget = (TLog_Widget*) widgets[currentWidget];
 
-        if (currentWidgetY >= screenHeight) {
-            // TODO Scrolling
+        if (currentWidgetY + heights[currentWidget] > screenHeight) {
+            uint32_t todo = currentWidgetY + heights[currentWidget] - screenHeight;
+            scrl(todo);
+            currentWidgetY = screenHeight - heights[currentWidget];
+            drawLines(widget, currentWidgetY, 0, heights[currentWidget], screenHeight);
         }
 
         if (widget->data->setFocus) {
@@ -140,12 +145,14 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
 
     refresh();
 
-    if (currentWidgetIndex >= widgetCount) {
+    if (currentWidget >= widgetCount) {
         goto finished_success;
     }
 
+    /************** Action **************/
+
     while (1) {
-        TLog_Widget* widget = (TLog_Widget*) widgets[currentWidgetIndex];
+        TLog_Widget* widget = (TLog_Widget*) widgets[currentWidget];
 
         uint32_t dirtyStart = 0;
         uint32_t dirtyEnd = 0;
@@ -171,6 +178,10 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
             goto finished_success;
         } else if (action == TLOG_WIDGET_ACTION_ESC) {
             goto finished_cancel;
+        } else if (action == TLOG_WIDGET_ACTION_UP) {
+            // TODO Go up
+        } else if (action == TLOG_WIDGET_ACTION_DOWN) {
+            // TODO Go down
         }
     }
 
@@ -212,8 +223,18 @@ static int drawLines(TLog_Widget* widget, uint32_t widgetY, uint32_t fromY, uint
 static int getAction(int input, TLog_Widget_Action* action) {
     if (input == '\n') {
         *action = TLOG_WIDGET_ACTION_RETURN;
+    } else if (input == 0x1b) {
+        *action = TLOG_WIDGET_ACTION_ESC;
     } else if (input == KEY_BACKSPACE) {
         *action = TLOG_WIDGET_ACTION_BACKSPACE;
+    } else if (input == KEY_UP) {
+        *action = TLOG_WIDGET_ACTION_UP;
+    } else if (input == KEY_DOWN) {
+        *action = TLOG_WIDGET_ACTION_DOWN;
+    } else if (input == KEY_LEFT) {
+        *action = TLOG_WIDGET_ACTION_LEFT;
+    } else if (input == KEY_RIGHT) {
+        *action = TLOG_WIDGET_ACTION_RIGHT;
     } else {
         return 0;
     }

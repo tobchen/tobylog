@@ -1,0 +1,39 @@
+digraph g {
+    start [label="", shape="circle", style="filled"];
+    end [label="", shape="doublecircle", style="filled"];
+    
+    subgraph cluster_0 {
+        getPreferedWidth [label="GetPreferedWidth()", shape="box"];
+        setMaximumWidth [label="SetMaximumWidth()", shape="box"];
+        
+        handleOtherWidgets [label="handle other widgets", shape="plaintext"];
+        
+        subgraph cluster_1 {
+            setFocus [label="SetFocus()", shape="box"];
+            awaitInput [label="await input", shape="plaintext"];
+            putChar [label="PutChar()", shape="box"];
+            putAction [label="PutAction()", shape="box"];
+            
+            label="handle this widget";
+        }
+        
+        label="Run()";
+    }
+    
+    start -> getPreferedWidth;
+    getPreferedWidth -> setMaximumWidth;
+    
+    setMaximumWidth -> handleOtherWidgets;
+    handleOtherWidgets -> handleOtherWidgets;
+    
+    setMaximumWidth -> setFocus;
+    handleOtherWidgets -> setFocus;
+    setFocus -> awaitInput;
+    awaitInput -> awaitInput;
+    awaitInput -> putChar -> awaitInput;
+    awaitInput -> putAction -> awaitInput;
+    putAction -> handleOtherWidgets;
+    putAction -> end;
+    
+    handleOtherWidgets -> end;
+}

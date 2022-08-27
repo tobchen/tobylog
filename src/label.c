@@ -132,6 +132,10 @@ static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screen
     }
     g_array_append_val(label->lines, line);
 
+    if (label->lines->len > screenHeight) {
+        g_array_remove_range(label->lines, screenHeight, label->lines->len - screenHeight);
+    }
+
     return label->lines->len;
 }
 

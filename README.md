@@ -15,6 +15,8 @@ A basic TUI dialog library
 
 **TODO**
 
+![Widget Lifecycle](assets/widget-lifecycle.svg "Widget Lifecycle")
+
 ## Dependencies
 
 - *glib-2.0*
