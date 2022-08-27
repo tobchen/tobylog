@@ -30,9 +30,16 @@ static int drawLines(TLog_Widget* widget, uint32_t widgetY, uint32_t fromY, uint
  * 
  * @param input ncurses input
  * @param action Where to put the action value
- * @return 1 if an action value was derived, or 0 else 
+ * @return True if an action value was derived, or false else 
  */
 static int getAction(int input, TLog_Widget_Action* action);
+
+// TODO Document
+static void getNextFocusableWidget(void** widgets, size_t widgetCount, size_t start, size_t* next);
+
+// TODO Document
+static void scrollDownToWidget(void** widgets, uint32_t* heights, size_t screenHeight,
+        size_t* currentWidget, uint32_t* currentWidgetY, size_t targetWidget);
 
 TLog_Result TLog_Init(void) {
     if (initCount > 0) {
@@ -71,6 +78,7 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
     uint32_t screenWidth, screenHeight;
     uint32_t maxWidth;
     size_t currentWidget;
+    size_t nextWidget;
     uint32_t currentWidgetY; // in screen space
     uint32_t cursorX, cursorY;
 
@@ -124,28 +132,19 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
 
     /************** Find Focusable Widget **************/
 
-    for (currentWidget = currentWidgetY = 0;
-            currentWidget < widgetCount;
-            currentWidgetY += heights[currentWidget], ++currentWidget) {
+    currentWidget = 0;
+    currentWidgetY = 0;
+    getNextFocusableWidget(widgets, widgetCount, currentWidget, &nextWidget);
+    if (nextWidget < widgetCount) {
+        scrollDownToWidget(widgets, heights, screenHeight, &currentWidget, &currentWidgetY, nextWidget);
         TLog_Widget* widget = (TLog_Widget*) widgets[currentWidget];
-
-        if (currentWidgetY + heights[currentWidget] > screenHeight) {
-            uint32_t todo = currentWidgetY + heights[currentWidget] - screenHeight;
-            scrl(todo);
-            currentWidgetY = screenHeight - heights[currentWidget];
-            drawLines(widget, currentWidgetY, 0, heights[currentWidget], screenHeight);
-        }
-
-        if (widget->data->setFocus) {
-            widget->data->setFocus(widget, 1, &cursorX, &cursorY);
-            move(currentWidgetY + cursorY, cursorX);
-            break;
-        }
+        widget->data->setFocus(widget, 1, &cursorX, &cursorY);
+        move(currentWidgetY + cursorY, cursorX);
     }
 
     refresh();
 
-    if (currentWidget >= widgetCount) {
+    if (nextWidget >= widgetCount) {
         goto finished_success;
     }
 
@@ -178,11 +177,18 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
             goto finished_success;
         } else if (action == TLOG_WIDGET_ACTION_ESC) {
             goto finished_cancel;
-        } else if (action == TLOG_WIDGET_ACTION_UP) {
+        } else if (action == TLOG_WIDGET_ACTION_UP && currentWidget > 0) {
             // TODO Go up
         } else if (action == TLOG_WIDGET_ACTION_DOWN) {
-            // TODO Go down
+            getNextFocusableWidget(widgets, widgetCount, currentWidget + 1, &nextWidget);
+            if (nextWidget < widgetCount) {
+                scrollDownToWidget(widgets, heights, screenHeight, &currentWidget, &currentWidgetY, nextWidget);
+                widget = (TLog_Widget*) widgets[currentWidget];
+            }
+            widget->data->setFocus(widget, 1, &cursorX, &cursorY);
+            move(currentWidgetY + cursorY, cursorX);
         }
+        refresh();
     }
 
     finished_success:
@@ -239,4 +245,24 @@ static int getAction(int input, TLog_Widget_Action* action) {
         return 0;
     }
     return 1;
+}
+
+static void getNextFocusableWidget(void** widgets, size_t widgetCount, size_t start, size_t* next) {
+    for (*next = start;
+            *next < widgetCount && !((TLog_Widget*) widgets[*next])->data->setFocus;
+            ++(*next));
+}
+
+static void scrollDownToWidget(void** widgets, uint32_t* heights, size_t screenHeight,
+        size_t* currentWidget, uint32_t* currentWidgetY, size_t targetWidget) {
+    while (targetWidget > *currentWidget) {
+        *currentWidgetY += heights[(*currentWidget)++];
+
+        if (*currentWidgetY + heights[*currentWidget] > screenHeight) {
+            uint32_t todo = *currentWidgetY + heights[*currentWidget] - screenHeight;
+            scrl(todo);
+            *currentWidgetY = screenHeight - heights[*currentWidget];
+            drawLines((TLog_Widget*) widgets[*currentWidget], *currentWidgetY, 0, heights[*currentWidget], screenHeight);
+        }
+    }
 }
