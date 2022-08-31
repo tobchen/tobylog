@@ -46,6 +46,6 @@ void TLog_Terminate(void);
  * @param widgetCount Number of widgets to be displayed
  * @return @ref TLog_Result::TLOG_RESULT_OK on Return, @ref TLog_Result::TLOG_RESULT_CANCEL on Esc, or @ref TLog_Result::TLOG_RESULT_FAIL on failure
  */
-TLog_Result TLog_Run(void** widgets, size_t widgetCount);
+TLog_Result TLog_Run(void** widgets, gsize widgetCount);
 
 #endif

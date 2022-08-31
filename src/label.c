@@ -7,7 +7,6 @@
 #include "../include/label.h"
 
 #include <stdlib.h>
-#include <string.h>
 
 #include <ncurses.h>
 
@@ -21,9 +20,9 @@
 /** @brief A label's line's start and ending. */
 typedef struct tlog_label_line {
     /** @brief First character in line. */
-    char* start;
+    gchar* start;
     /** @brief The character after the last character in line. */
-    char* end;
+    gchar* end;
 } TLog_Label_Line;
 
 struct tlog_label {
@@ -31,15 +30,15 @@ struct tlog_label {
     const TLog_Widget_Data* data;
 
     /** @brief Text. */
-    char* text;
+    gchar* text;
 
     /** @brief Line starts and endings. */
     GArray* lines;
 };
 
-static uint32_t getPreferedWidth(void* widget);
-static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screenHeight);
-static void drawLine(void* widget, uint32_t lineY);
+static guint32 getPreferedWidth(void* widget);
+static guint32 setMaximumWidth(void* widget, guint32 maxWidth, guint32 screenHeight);
+static void drawLine(void* widget, guint32 lineY);
 
 /** @brief Label widget functions. */
 static const TLog_Widget_Data TLOG_LABEL_DATA = {
@@ -51,12 +50,12 @@ static const TLog_Widget_Data TLOG_LABEL_DATA = {
     NULL
 };
 
-TLog_Label* TLog_Label_Create(char* text) {
+TLog_Label* TLog_Label_Create(gchar* text) {
     if (!text) {
         goto fail_arg;
     }
 
-    TLog_Label* label = malloc(sizeof(TLog_Label));
+    TLog_Label* label = g_malloc(sizeof(TLog_Label));
     if (!label) {
         goto fail_label;
     }
@@ -78,7 +77,7 @@ TLog_Label* TLog_Label_Create(char* text) {
     fail_lines:
     g_free(label->text);
     fail_text:
-    free(label);
+    g_free(label);
     fail_label:
     fail_arg:
     return NULL;
@@ -88,16 +87,16 @@ void TLog_Label_Destroy(TLog_Label* label) {
     if (label) {
         g_array_free(label->lines, TRUE);
         g_free(label->text);
-        free(label);
+        g_free(label);
     }
 }
 
-static uint32_t getPreferedWidth(void* widget) {
+static guint32 getPreferedWidth(void* widget) {
     TLog_Label* label = (TLog_Label*) widget;
     
-    uint32_t preferedWidth = 0;
-    uint32_t currentWidth = 0;
-    for (char* ch = label->text; *ch != 0; ch = g_utf8_find_next_char(ch, NULL)) {
+    guint32 preferedWidth = 0;
+    guint32 currentWidth = 0;
+    for (gchar* ch = label->text; *ch != 0; ch = g_utf8_find_next_char(ch, NULL)) {
         if (*ch == '\n') {
             currentWidth = 0;
         } else {
@@ -112,7 +111,7 @@ static uint32_t getPreferedWidth(void* widget) {
     return preferedWidth;
 }
 
-static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screenHeight) {
+static guint32 setMaximumWidth(void* widget, guint32 maxWidth, guint32 screenHeight) {
     UNUSED(screenHeight);
 
     TLog_Label* label = (TLog_Label*) widget;
@@ -120,7 +119,7 @@ static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screen
     g_array_remove_range(label->lines, 0, label->lines->len);
 
     /* TODO Sexy word wrap */
-    size_t utf8width;
+    gsize utf8width;
     TLog_Label_Line line;
     for (line.start = line.end = label->text, utf8width = 0;
             *line.end != 0; line.end = g_utf8_find_next_char(line.end, NULL), ++utf8width) {
@@ -139,7 +138,7 @@ static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screen
     return label->lines->len;
 }
 
-static void drawLine(void* widget, uint32_t lineY) {
+static void drawLine(void* widget, guint32 lineY) {
     TLog_Label* label = (TLog_Label*) widget;
     TLog_Label_Line* line = &g_array_index(label->lines, TLog_Label_Line, lineY);
     addnstr(line->start, line->end - line->start);

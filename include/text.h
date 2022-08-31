@@ -18,7 +18,7 @@ typedef struct tlog_text TLog_Text;
  * @param maximumWidth Maximum width of text the field can hold
  * @return A new text field, or NULL on error
  */
-TLog_Text* TLog_Text_Create(size_t maximumWidth);
+TLog_Text* TLog_Text_Create(gsize maximumWidth);
 
 /**
  * @brief Destroys a text field.
@@ -35,7 +35,7 @@ void TLog_Text_Destroy(TLog_Text* text);
  * @param text The text field
  * @param consumeReturn Wether to consume (true) or not (false)
  */
-void TLog_Text_SetConsumeReturn(TLog_Text* text, int consumeReturn);
+void TLog_Text_SetConsumeReturn(TLog_Text* text, gboolean consumeReturn);
 
 /**
  * @brief Sets a text field's text.
@@ -45,7 +45,7 @@ void TLog_Text_SetConsumeReturn(TLog_Text* text, int consumeReturn);
  * @param text The text field
  * @param value The text
  */
-void TLog_Text_SetText(TLog_Text* text, char* value);
+void TLog_Text_SetText(TLog_Text* text, gchar* value);
 
 /**
  * @brief Returns a text field's text.
@@ -55,6 +55,6 @@ void TLog_Text_SetText(TLog_Text* text, char* value);
  * @param text The text field
  * @return The text field's text, or NULL on error
  */
-char* TLog_Text_GetText(TLog_Text* text);
+gchar* TLog_Text_GetText(TLog_Text* text);
 
 #endif

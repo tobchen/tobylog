@@ -18,7 +18,7 @@ typedef struct tlog_label TLog_Label;
  * @param text Label's text
  * @return A new label, or NULL on error
  */
-TLog_Label* TLog_Label_Create(char* text);
+TLog_Label* TLog_Label_Create(gchar* text);
 
 /**
  * @brief Destroys a label.

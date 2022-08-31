@@ -20,29 +20,29 @@ struct tlog_text {
     const TLog_Widget_Data* data;
 
     /** @brief Width. */
-    uint32_t width;
+    guint32 width;
 
     /** @brief Text. */
     GString* text;
     /** @brief Index of the first visible character. */
-    size_t firstVis;
+    gsize firstVis;
     /** @brief Text length. */
-    size_t utf8len;
+    gsize utf8len;
     /** @brief Maximum text length. */
-    size_t maxLen;
+    gsize maxLen;
 
     /** @brief Wether to consume Return input (true) or not (false). */
-    int consumeReturn;
+    gboolean consumeReturn;
 };
 
-static uint32_t getPreferedWidth(void* widget);
-static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screenHeight);
-static void drawLine(void* widget, uint32_t lineY);
-static void setFocus(void* widget, int fromAbove, uint32_t* cursorX, uint32_t* cursorY);
-static void putChar(void* widget, char ch,
-        uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd);
-static int putAction(void* widget, TLog_Widget_Action action,
-        uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd);
+static guint32 getPreferedWidth(void* widget);
+static guint32 setMaximumWidth(void* widget, guint32 maxWidth, guint32 screenHeight);
+static void drawLine(void* widget, guint32 lineY);
+static void setFocus(void* widget, gboolean fromAbove, guint32* cursorX, guint32* cursorY);
+static void putChar(void* widget, gchar ch,
+        guint32* cursorX, guint32* cursorY, guint32* dirtyStart, guint32* dirtyEnd);
+static gboolean putAction(void* widget, TLog_Widget_Action action,
+        guint32* cursorX, guint32* cursorY, guint32* dirtyStart, guint32* dirtyEnd);
 
 static const TLog_Widget_Data TLOG_TEXT_DATA = {
     &getPreferedWidth,
@@ -53,8 +53,8 @@ static const TLog_Widget_Data TLOG_TEXT_DATA = {
     &putAction
 };
 
-TLog_Text* TLog_Text_Create(size_t maximumWidth) {
-    TLog_Text* text = malloc(sizeof(TLog_Text));
+TLog_Text* TLog_Text_Create(gsize maximumWidth) {
+    TLog_Text* text = g_malloc(sizeof(TLog_Text));
     if (!text) {
         goto fail_text;
     }
@@ -73,7 +73,7 @@ TLog_Text* TLog_Text_Create(size_t maximumWidth) {
     return text;
 
     fail_text_text:
-    free(text);
+    g_free(text);
     fail_text:
     return NULL;
 }
@@ -81,22 +81,22 @@ TLog_Text* TLog_Text_Create(size_t maximumWidth) {
 void TLog_Text_Destroy(TLog_Text* text) {
     if (text) {
         g_string_free(text->text, TRUE);
-        free(text);
+        g_free(text);
     }
 }
 
-void TLog_Text_SetConsumeReturn(TLog_Text* text, int consumeReturn) {
+void TLog_Text_SetConsumeReturn(TLog_Text* text, gboolean consumeReturn) {
     if (text) {
         text->consumeReturn = consumeReturn;
     }
 }
 
-void TLog_Text_SetText(TLog_Text* text, char* value) {
+void TLog_Text_SetText(TLog_Text* text, gchar* value) {
     if (text) {
         g_string_truncate(text->text, 0);
         text->utf8len = 0;
 
-        for (char* next = g_utf8_find_next_char(value, NULL);
+        for (gchar* next = g_utf8_find_next_char(value, NULL);
                 *value != 0 && text->utf8len < text->maxLen;
                 value = next, next = g_utf8_find_next_char(value, NULL), ++text->utf8len) {
             g_string_append_len(text->text, value, next - value);
@@ -104,23 +104,23 @@ void TLog_Text_SetText(TLog_Text* text, char* value) {
     }
 }
 
-char* TLog_Text_GetText(TLog_Text* text) {
+gchar* TLog_Text_GetText(TLog_Text* text) {
     return text ? g_strdup(text->text->str) : NULL;
 }
 
-static uint32_t getPreferedWidth(void* widget) {
+static guint32 getPreferedWidth(void* widget) {
     return ((TLog_Text*) widget)->maxLen + 1;
 }
 
-static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screenHeight) {
+static guint32 setMaximumWidth(void* widget, guint32 maxWidth, guint32 screenHeight) {
     UNUSED(screenHeight);
 
     TLog_Text* text = (TLog_Text*) widget;
 
     text->width = maxWidth < text->maxLen + 1 ? maxWidth : text->maxLen + 1;
 
-    char* ch = text->text->str;
-    for (size_t i = 0; text->utf8len - i > text->width; ++i) {
+    gchar* ch = text->text->str;
+    for (gsize i = 0; text->utf8len - i > text->width; ++i) {
         ch = g_utf8_find_next_char(ch, NULL);
     }
     text->firstVis = ch - text->text->str;
@@ -128,7 +128,7 @@ static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screen
     return 1;
 }
 
-static void drawLine(void* widget, uint32_t lineY) {
+static void drawLine(void* widget, guint32 lineY) {
     UNUSED(lineY);
 
     TLog_Text* text = (TLog_Text*) widget;
@@ -138,12 +138,12 @@ static void drawLine(void* widget, uint32_t lineY) {
     addstr(&text->text->str[text->firstVis]);
     addch(' ');
 
-    for (size_t done = text->utf8len + 1; done < text->width; ++done) {
+    for (gsize done = text->utf8len + 1; done < text->width; ++done) {
         addch(' ');
     }
 }
 
-static void setFocus(void* widget, int fromAbove, uint32_t* cursorX, uint32_t* cursorY) {
+static void setFocus(void* widget, gboolean fromAbove, guint32* cursorX, guint32* cursorY) {
     UNUSED(fromAbove);
 
     TLog_Text* text = (TLog_Text*) widget;
@@ -151,8 +151,8 @@ static void setFocus(void* widget, int fromAbove, uint32_t* cursorX, uint32_t* c
     *cursorY = 0;
 }
 
-static void putChar(void* widget, char ch,
-        uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd) {
+static void putChar(void* widget, gchar ch,
+        guint32* cursorX, guint32* cursorY, guint32* dirtyStart, guint32* dirtyEnd) {
     TLog_Text* text = (TLog_Text*) widget;
 
     *dirtyStart = *dirtyEnd = 0;
@@ -172,10 +172,10 @@ static void putChar(void* widget, char ch,
     }
 }
         
-static int putAction(void* widget, TLog_Widget_Action action,
-        uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd) {
+static gboolean putAction(void* widget, TLog_Widget_Action action,
+        guint32* cursorX, guint32* cursorY, guint32* dirtyStart, guint32* dirtyEnd) {
     TLog_Text* text = (TLog_Text*) widget;
-    int consumed = 0;
+    gboolean consumed = FALSE;
 
     *dirtyStart = *dirtyEnd = 0;
 
@@ -194,9 +194,9 @@ static int putAction(void* widget, TLog_Widget_Action action,
 
             *dirtyEnd = 1;
         }
-        consumed = 1;
+        consumed = TRUE;
     } else if (text->consumeReturn && action == TLOG_WIDGET_ACTION_RETURN) {
-        consumed = 1;
+        consumed = TRUE;
     }
 
     return consumed;

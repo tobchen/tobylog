@@ -17,8 +17,8 @@ int main(void) {
 
     TLog_Run(widgets, 4);
 
-    char* firstName = TLog_Text_GetText(widgets[1]);
-    char* surname = TLog_Text_GetText(widgets[3]);
+    gchar* firstName = TLog_Text_GetText(widgets[1]);
+    gchar* surname = TLog_Text_GetText(widgets[3]);
 
     TLog_Label_Destroy(widgets[0]);
     TLog_Text_Destroy(widgets[1]);
