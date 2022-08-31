@@ -96,10 +96,12 @@ void TLog_Text_SetText(TLog_Text* text, gchar* value) {
         g_string_truncate(text->text, 0);
         text->utf8len = 0;
 
-        for (gchar* next = g_utf8_find_next_char(value, NULL);
-                *value != 0 && text->utf8len < text->maxLen;
-                value = next, next = g_utf8_find_next_char(value, NULL), ++text->utf8len) {
-            g_string_append_len(text->text, value, next - value);
+        if (value) {
+            for (gchar* next = g_utf8_find_next_char(value, NULL);
+                    *value != 0 && text->utf8len < text->maxLen;
+                    value = next, next = g_utf8_find_next_char(value, NULL), ++text->utf8len) {
+                g_string_append_len(text->text, value, next - value);
+            }
         }
     }
 }
