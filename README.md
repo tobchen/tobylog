@@ -19,5 +19,5 @@ A basic TUI dialog library
 
 ## Dependencies
 
-- *glib-2.0*
+- *Apache Portable Runtime*
 - *ncurses*
