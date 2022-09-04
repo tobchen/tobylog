@@ -5,32 +5,31 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-int main(void) {
-    TLog_Init();
+#include <apr.h>
+
+int main(int argc, const char *const *argv) {
+    apr_app_initialize(&argc, &argv, NULL);
+
+    apr_pool_t* pool;
+    apr_pool_create(&pool, NULL);
+
+    TLog_Init(pool);
 
     void* widgets[] = {
-        TLog_Label_Create("First Name:"),
-        TLog_Text_Create(50),
-        TLog_Label_Create("Surname:"),
-        TLog_Text_Create(50)
+        TLog_Label_Create(pool, "First Name:"),
+        TLog_Text_Create(pool, 50),
+        TLog_Label_Create(pool, "Surname:"),
+        TLog_Text_Create(pool, 50)
     };
 
     TLog_Run(widgets, 4);
 
-    gchar* firstName = TLog_Text_GetText(widgets[1]);
-    gchar* surname = TLog_Text_GetText(widgets[3]);
+    char* firstName = TLog_Text_GetText(widgets[1], pool);
+    char* surname = TLog_Text_GetText(widgets[3], pool);
 
-    TLog_Label_Destroy(widgets[0]);
-    TLog_Text_Destroy(widgets[1]);
-    TLog_Label_Destroy(widgets[2]);
-    TLog_Text_Destroy(widgets[3]);
+    fprintf(stderr, "You typed in: %s %s\n", firstName, surname);
 
-    TLog_Terminate();
-
-    printf("You typed in: %s %s\n", firstName, surname);
-
-    free(firstName);
-    free(surname);
+    apr_terminate();
 
     return 0;
 }

@@ -8,7 +8,12 @@
 
 #include <stdlib.h>
 
+#include <apr_tables.h>
+#include <apr_strings.h>
+
 #include <ncurses.h>
+
+#include "utf8.h"
 
 /** @brief Initial capacity of a label's line meta buffer. */
 #define INIT_LINE_CAPACITY 4
@@ -20,25 +25,28 @@
 /** @brief A label's line's start and ending. */
 typedef struct tlog_label_line {
     /** @brief First character in line. */
-    gchar* start;
+    char* start;
     /** @brief The character after the last character in line. */
-    gchar* end;
+    char* end;
 } TLog_Label_Line;
 
 struct tlog_label {
     /** @brief Widget data. */
     const TLog_Widget_Data* data;
 
+    /** @brief Memory pool */
+    apr_pool_t* pool;
+
     /** @brief Text. */
-    gchar* text;
+    char* text;
 
     /** @brief Line starts and endings. */
-    GArray* lines;
+    apr_array_header_t* lines;
 };
 
-static guint32 getPreferedWidth(void* widget);
-static guint32 setMaximumWidth(void* widget, guint32 maxWidth, guint32 screenHeight);
-static void drawLine(void* widget, guint32 lineY);
+static uint32_t getPreferedWidth(void* widget);
+static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screenHeight);
+static void drawLine(void* widget, uint32_t lineY);
 
 /** @brief Label widget functions. */
 static const TLog_Widget_Data TLOG_LABEL_DATA = {
@@ -50,53 +58,42 @@ static const TLog_Widget_Data TLOG_LABEL_DATA = {
     NULL
 };
 
-TLog_Label* TLog_Label_Create(gchar* text) {
+TLog_Label* TLog_Label_Create(apr_pool_t* pool, char* text) {
     if (!text) {
-        goto fail_arg;
+        goto fail;
     }
 
-    TLog_Label* label = g_malloc(sizeof(TLog_Label));
+    TLog_Label* label = apr_palloc(pool, sizeof(TLog_Label));
     if (!label) {
-        goto fail_label;
+        goto fail;
     }
 
     label->data = &TLOG_LABEL_DATA;
 
-    label->text = g_strdup(text);
+    label->pool = pool;
+
+    label->text = apr_pstrdup(pool, text);
     if (!label->text) {
-        goto fail_text;
+        goto fail;
     }
 
-    label->lines = g_array_new(FALSE, FALSE, sizeof(TLog_Label_Line));
+    label->lines = apr_array_make(pool, 0, sizeof(TLog_Label_Line));
     if (!label->lines) {
-        goto fail_lines;
+        goto fail;
     }
 
     return label;
 
-    fail_lines:
-    g_free(label->text);
-    fail_text:
-    g_free(label);
-    fail_label:
-    fail_arg:
+    fail:
     return NULL;
 }
 
-void TLog_Label_Destroy(TLog_Label* label) {
-    if (label) {
-        g_array_free(label->lines, TRUE);
-        g_free(label->text);
-        g_free(label);
-    }
-}
-
-static guint32 getPreferedWidth(void* widget) {
+static uint32_t getPreferedWidth(void* widget) {
     TLog_Label* label = (TLog_Label*) widget;
     
-    guint32 preferedWidth = 0;
-    guint32 currentWidth = 0;
-    for (gchar* ch = label->text; *ch != 0; ch = g_utf8_find_next_char(ch, NULL)) {
+    uint32_t preferedWidth = 0;
+    uint32_t currentWidth = 0;
+    for (char* ch = label->text; *ch != 0; ch = TLog_UTF8_NextChar(ch)) {
         if (*ch == '\n') {
             currentWidth = 0;
         } else {
@@ -111,35 +108,34 @@ static guint32 getPreferedWidth(void* widget) {
     return preferedWidth;
 }
 
-static guint32 setMaximumWidth(void* widget, guint32 maxWidth, guint32 screenHeight) {
-    UNUSED(screenHeight);
-
+static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screenHeight) {
     TLog_Label* label = (TLog_Label*) widget;
 
-    g_array_remove_range(label->lines, 0, label->lines->len);
+    apr_array_clear(label->lines);
 
     /* TODO Sexy word wrap */
-    gsize utf8width;
+    size_t utf8width;
     TLog_Label_Line line;
     for (line.start = line.end = label->text, utf8width = 0;
-            *line.end != 0; line.end = g_utf8_find_next_char(line.end, NULL), ++utf8width) {
+            *line.end != 0;
+            line.end = TLog_UTF8_NextChar(line.end), ++utf8width) {
         if (*line.end == '\n' || utf8width == maxWidth) {
-            g_array_append_val(label->lines, line);
+            APR_ARRAY_PUSH(label->lines, TLog_Label_Line) = line;
             utf8width = 0;
-            line.start = line.end = *line.end == '\n' ? g_utf8_find_next_char(line.end, NULL) : line.end;
+            line.start = line.end = *line.end == '\n' ? TLog_UTF8_NextChar(line.end) : line.end;
         }
     }
-    g_array_append_val(label->lines, line);
+    APR_ARRAY_PUSH(label->lines, TLog_Label_Line) = line;
 
-    if (label->lines->len > screenHeight) {
-        g_array_remove_range(label->lines, screenHeight, label->lines->len - screenHeight);
+    while (label->lines->nelts > (int) screenHeight) {
+        apr_array_pop(label->lines);
     }
 
-    return label->lines->len;
+    return label->lines->nelts;
 }
 
-static void drawLine(void* widget, guint32 lineY) {
+static void drawLine(void* widget, uint32_t lineY) {
     TLog_Label* label = (TLog_Label*) widget;
-    TLog_Label_Line* line = &g_array_index(label->lines, TLog_Label_Line, lineY);
+    TLog_Label_Line* line = &APR_ARRAY_IDX(label->lines, lineY, TLog_Label_Line);
     addnstr(line->start, line->end - line->start);
 }

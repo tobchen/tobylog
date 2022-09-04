@@ -4,20 +4,25 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-int main(void) {
-    TLog_Init();
+#include <apr.h>
+
+int main(int argc, const char *const *argv) {
+    apr_app_initialize(&argc, &argv, NULL);
+
+    apr_pool_t* pool;
+    apr_pool_create(&pool, NULL);
+
+    TLog_Init(pool);
 
     void* widgets[] =  {
-        TLog_Label_Create("This is a label! This is such a very beautiful label!\nI agree!")
+        TLog_Label_Create(pool, "This is a label! This is such a very beautiful label!\nI agree!")
         // TLog_Label_Create("A")
     };
     TLog_Run(widgets, 1);
 
     sleep(3);
 
-    TLog_Label_Destroy(widgets[0]);
-
-    TLog_Terminate();
+    apr_terminate();
 
     return 0;
 }

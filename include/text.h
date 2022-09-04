@@ -9,23 +9,19 @@
 
 #include "widget.h"
 
+#include <apr_pools.h>
+
 /** @brief A text field. */
 typedef struct tlog_text TLog_Text;
 
 /**
  * @brief Creates a text field.
  * 
+ * @param pool Memory pool
  * @param maximumWidth Maximum width of text the field can hold
  * @return A new text field, or NULL on error
  */
-TLog_Text* TLog_Text_Create(gsize maximumWidth);
-
-/**
- * @brief Destroys a text field.
- * 
- * @param text The text field to destroy
- */
-void TLog_Text_Destroy(TLog_Text* text);
+TLog_Text* TLog_Text_Create(apr_pool_t* pool, size_t maximumWidth);
 
 /**
  * @brief Sets wether a text field is to consume Return inputs.
@@ -35,7 +31,7 @@ void TLog_Text_Destroy(TLog_Text* text);
  * @param text The text field
  * @param consumeReturn Wether to consume (true) or not (false)
  */
-void TLog_Text_SetConsumeReturn(TLog_Text* text, gboolean consumeReturn);
+void TLog_Text_SetConsumeReturn(TLog_Text* text, bool consumeReturn);
 
 /**
  * @brief Sets a text field's text.
@@ -45,7 +41,7 @@ void TLog_Text_SetConsumeReturn(TLog_Text* text, gboolean consumeReturn);
  * @param text The text field
  * @param value The text
  */
-void TLog_Text_SetText(TLog_Text* text, gchar* value);
+void TLog_Text_SetText(TLog_Text* text, char* value);
 
 /**
  * @brief Returns a text field's text.
@@ -53,8 +49,9 @@ void TLog_Text_SetText(TLog_Text* text, gchar* value);
  * The returned text will be newly allocated and is owned by the caller (free with g_free).
  * 
  * @param text The text field
+ * @param pool Memory pool for the text
  * @return The text field's text, or NULL on error
  */
-gchar* TLog_Text_GetText(TLog_Text* text);
+char* TLog_Text_GetText(TLog_Text* text, apr_pool_t* pool);
 
 #endif
