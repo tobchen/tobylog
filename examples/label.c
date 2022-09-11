@@ -15,10 +15,10 @@ int main(int argc, const char *const *argv) {
     TLog_Init(pool);
 
     void* widgets[] =  {
-        TLog_Label_Create(pool, "This is a label! This is such a very beautiful label!\nI agree!")
-        // TLog_Label_Create("A")
+        TLog_Label_Create(pool, "This is a label! This is such a very beautiful label!\nI agree!"),
+        NULL
     };
-    TLog_Run(widgets, 1);
+    TLog_Run(widgets);
 
     sleep(3);
 

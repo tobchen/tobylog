@@ -39,10 +39,9 @@ TLog_Result TLog_Init(apr_pool_t* pool);
  * This function will run until the user presses Return or Esc (and the currently
  * focused widget won't consume the input).
  * 
- * @param widgets Array of widgets to be displayed from top to bottom
- * @param widgetCount Number of widgets to be displayed
+ * @param widgets NULL-terminated array of widgets to be displayed from top to bottom
  * @return @ref TLog_Result::TLOG_RESULT_OK on Return, @ref TLog_Result::TLOG_RESULT_CANCEL on Esc, or @ref TLog_Result::TLOG_RESULT_FAIL on failure
  */
-TLog_Result TLog_Run(void** widgets, size_t widgetCount);
+TLog_Result TLog_Run(void** widgets);
 
 #endif

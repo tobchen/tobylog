@@ -15,11 +15,10 @@
 /** @brief Marks unused function parameters to prevent unused warnings. */
 #define UNUSED(x) (void)(x)
 
+#define DEFAULT_WIDGET_COUNT 12
+
 /** @brief TRUE if Tobylog is initialized, or FALSE else. */
 static bool isInitialized = false;
-
-/** @brief Memory pool. */
-static apr_pool_t* pool = NULL;
 
 /** @brief Widget heights. */
 static apr_array_header_t* heights = NULL;
@@ -68,7 +67,7 @@ static void scrollUpToWidget(void** widgets, uint32_t* heights, uint32_t screenH
 static void scrollDownToWidget(void** widgets, uint32_t* heights, uint32_t screenHeight,
         size_t* currentWidget, uint32_t* currentWidgetY, size_t targetWidget);
 
-TLog_Result TLog_Init(apr_pool_t* poolArg) {
+TLog_Result TLog_Init(apr_pool_t* pool) {
     if (isInitialized) {
         goto success;
     }
@@ -82,7 +81,11 @@ TLog_Result TLog_Init(apr_pool_t* poolArg) {
     noecho();
     scrollok(stdscr, TRUE);
 
-    pool = poolArg;
+    heights = apr_array_make(pool, DEFAULT_WIDGET_COUNT, sizeof(uint32_t));
+    if (!heights) {
+        goto fail;
+    }
+
     isInitialized = true;
     apr_pool_cleanup_register(pool, NULL, terminate, apr_pool_cleanup_null);
     success:
@@ -92,7 +95,7 @@ TLog_Result TLog_Init(apr_pool_t* poolArg) {
     return TLOG_RESULT_FAIL;
 }
 
-TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
+TLog_Result TLog_Run(void** widgets) {
     uint32_t screenWidth, screenHeight;
     uint32_t maxWidth;
     size_t currentWidget;
@@ -104,15 +107,14 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
         goto fail;
     }
 
-    if (widgetCount == 0 || !widgets) {
+    if (!widgets) {
         goto immediate_success;
     }
 
-    if (!heights) {
-        heights = apr_array_make(pool, widgetCount, sizeof(uint32_t));
-        if (!heights) {
-            goto fail;
-        }
+    size_t widgetCount;
+    for (widgetCount = 0; widgets[widgetCount]; ++widgetCount);
+    if (widgetCount == 0) {
+        goto immediate_success;
     }
 
     /************** Widget Size Calculation **************/
@@ -236,8 +238,6 @@ TLog_Result TLog_Run(void** widgets, size_t widgetCount) {
 static apr_status_t terminate(void* data) {
     UNUSED(data);
     isInitialized = false;
-    pool = NULL;
-    heights = NULL;
     endwin();
     return APR_SUCCESS;
 }

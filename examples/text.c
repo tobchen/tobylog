@@ -19,10 +19,11 @@ int main(int argc, const char *const *argv) {
         TLog_Label_Create(pool, "First Name:"),
         TLog_Text_Create(pool, 50),
         TLog_Label_Create(pool, "Surname:"),
-        TLog_Text_Create(pool, 50)
+        TLog_Text_Create(pool, 50),
+        NULL
     };
 
-    TLog_Run(widgets, 4);
+    TLog_Run(widgets);
 
     char* firstName = TLog_Text_GetText(widgets[1], pool);
     char* surname = TLog_Text_GetText(widgets[3], pool);
