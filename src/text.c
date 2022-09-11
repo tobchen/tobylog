@@ -93,7 +93,7 @@ void TLog_Text_SetText(TLog_Text* text, char* value) {
 }
 
 char* TLog_Text_GetText(TLog_Text* text, apr_pool_t* pool) {
-    return text ? apr_pstrdup(pool, text->text.buf->elts) : NULL;
+    return text ? apr_pstrdup(pool, text->text.buffer) : NULL;
 }
 
 static uint32_t getPreferedWidth(void* widget) {
@@ -107,11 +107,11 @@ static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screen
 
     text->width = maxWidth < text->maxLen + 1 ? maxWidth : text->maxLen + 1;
 
-    char* ch = TLog_String_CharAt(&text->text, text->text.len);
+    char* ch = &text->text.buffer[text->text.len];
     for (size_t i = 0;
-        i < text->width - 1 && ch != TLog_String_CharAt(&text->text, 0);
+        i < text->width - 1 && ch != &text->text.buffer[0];
         ++i, ch = TLog_UTF8_PrevChar(ch));
-    text->firstVis = ch - TLog_String_CharAt(&text->text, 0);
+    text->firstVis = ch - &text->text.buffer[0];
 
     return 1;
 }
@@ -123,7 +123,7 @@ static void drawLine(void* widget, uint32_t lineY) {
 
     attrset(A_REVERSE);
 
-    addstr(TLog_String_CharAt(&text->text, text->firstVis));
+    addstr(&text->text.buffer[text->firstVis]);
     addch(' ');
 
     for (size_t done = text->text.utf8len + 1; done < text->width; ++done) {
@@ -149,7 +149,7 @@ static void putChar(void* widget, char ch,
         TLog_String_AppendASCII(&text->text, ch);
 
         if (text->text.utf8len >= text->width) {
-            text->firstVis += TLog_UTF8_CharLen(TLog_String_CharAt(&text->text, text->firstVis));
+            text->firstVis += TLog_UTF8_CharLen(&text->text.buffer[text->firstVis]);
         }
 
         setFocus(text, 0, cursorX, cursorY);
@@ -170,7 +170,7 @@ static bool putAction(void* widget, TLog_Widget_Action action,
             TLog_String_Pop(&text->text);
 
             if (text->firstVis > 0) {
-                text->firstVis -= TLog_UTF8_CharLen(TLog_UTF8_PrevChar(TLog_String_CharAt(&text->text, text->firstVis)));
+                text->firstVis -= TLog_UTF8_CharLen(TLog_UTF8_PrevChar(&text->text.buffer[text->firstVis]));
             }
 
             setFocus(text, 0, cursorX, cursorY);

@@ -9,7 +9,8 @@
 typedef struct tlog_string {
     apr_pool_t* pool;
 
-    apr_array_header_t* buf;
+    char* buffer;
+    size_t capacity;
     size_t len;
     size_t utf8len;
 } TLog_String;
@@ -21,15 +22,12 @@ int TLog_String_Init(TLog_String* str, apr_pool_t* pool);
 void TLog_String_Clear(TLog_String* str);
 
 // TODO Document
-void TLog_String_Set(TLog_String* str, char* value);
+int TLog_String_Set(TLog_String* str, char* value);
 
 // TODO Document
-void TLog_String_AppendASCII(TLog_String* str, char ch);
+int TLog_String_AppendASCII(TLog_String* str, char ch);
 
 // TODO Document
 void TLog_String_Pop(TLog_String* str);
-
-// TODO Document
-char* TLog_String_CharAt(TLog_String* str, size_t i);
 
 #endif
