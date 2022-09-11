@@ -42,6 +42,6 @@ TLog_Result TLog_Init(apr_pool_t* pool);
  * @param widgets NULL-terminated array of widgets to be displayed from top to bottom
  * @return @ref TLog_Result::TLOG_RESULT_OK on Return, @ref TLog_Result::TLOG_RESULT_CANCEL on Esc, or @ref TLog_Result::TLOG_RESULT_FAIL on failure
  */
-TLog_Result TLog_Run(void** widgets);
+TLog_Result TLog_Run(TLog_Widget** widgets);
 
 #endif

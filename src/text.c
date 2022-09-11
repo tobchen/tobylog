@@ -41,13 +41,13 @@ struct tlog_text {
     bool consumeReturn;
 };
 
-static uint32_t getPreferedWidth(void* widget);
-static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screenHeight);
-static void drawLine(void* widget, uint32_t lineY);
-static void setFocus(void* widget, bool fromAbove, uint32_t* cursorX, uint32_t* cursorY);
-static void putChar(void* widget, char ch,
+static uint32_t getPreferedWidth(TLog_Widget* widget);
+static uint32_t setMaximumWidth(TLog_Widget* widget, uint32_t maxWidth, uint32_t screenHeight);
+static void drawLine(TLog_Widget* widget, uint32_t lineY);
+static void setFocus(TLog_Widget* widget, bool fromAbove, uint32_t* cursorX, uint32_t* cursorY);
+static void putChar(TLog_Widget* widget, char ch,
         uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd);
-static bool putAction(void* widget, TLog_Widget_Action action,
+static bool putAction(TLog_Widget* widget, TLog_Widget_Action action,
         uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd);
 
 static const TLog_Widget_Data TLOG_TEXT_DATA = {
@@ -96,11 +96,11 @@ char* TLog_Text_GetText(TLog_Text* text, apr_pool_t* pool) {
     return text ? apr_pstrdup(pool, text->text.buffer) : NULL;
 }
 
-static uint32_t getPreferedWidth(void* widget) {
+static uint32_t getPreferedWidth(TLog_Widget* widget) {
     return ((TLog_Text*) widget)->maxLen + 1;
 }
 
-static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screenHeight) {
+static uint32_t setMaximumWidth(TLog_Widget* widget, uint32_t maxWidth, uint32_t screenHeight) {
     UNUSED(screenHeight);
 
     TLog_Text* text = (TLog_Text*) widget;
@@ -116,7 +116,7 @@ static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screen
     return 1;
 }
 
-static void drawLine(void* widget, uint32_t lineY) {
+static void drawLine(TLog_Widget* widget, uint32_t lineY) {
     UNUSED(lineY);
 
     TLog_Text* text = (TLog_Text*) widget;
@@ -131,7 +131,7 @@ static void drawLine(void* widget, uint32_t lineY) {
     }
 }
 
-static void setFocus(void* widget, bool fromAbove, uint32_t* cursorX, uint32_t* cursorY) {
+static void setFocus(TLog_Widget* widget, bool fromAbove, uint32_t* cursorX, uint32_t* cursorY) {
     UNUSED(fromAbove);
 
     TLog_Text* text = (TLog_Text*) widget;
@@ -139,7 +139,7 @@ static void setFocus(void* widget, bool fromAbove, uint32_t* cursorX, uint32_t* 
     *cursorY = 0;
 }
 
-static void putChar(void* widget, char ch,
+static void putChar(TLog_Widget* widget, char ch,
         uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd) {
     TLog_Text* text = (TLog_Text*) widget;
 
@@ -152,13 +152,13 @@ static void putChar(void* widget, char ch,
             text->firstVis += TLog_UTF8_CharLen(&text->text.buffer[text->firstVis]);
         }
 
-        setFocus(text, 0, cursorX, cursorY);
+        setFocus(widget, 0, cursorX, cursorY);
         
         *dirtyEnd = 1;
     }
 }
         
-static bool putAction(void* widget, TLog_Widget_Action action,
+static bool putAction(TLog_Widget* widget, TLog_Widget_Action action,
         uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd) {
     TLog_Text* text = (TLog_Text*) widget;
     bool consumed = false;
@@ -173,7 +173,7 @@ static bool putAction(void* widget, TLog_Widget_Action action,
                 text->firstVis -= TLog_UTF8_CharLen(TLog_UTF8_PrevChar(&text->text.buffer[text->firstVis]));
             }
 
-            setFocus(text, 0, cursorX, cursorY);
+            setFocus(widget, 0, cursorX, cursorY);
 
             *dirtyEnd = 1;
         }

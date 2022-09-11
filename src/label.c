@@ -44,9 +44,9 @@ struct tlog_label {
     apr_array_header_t* lines;
 };
 
-static uint32_t getPreferedWidth(void* widget);
-static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screenHeight);
-static void drawLine(void* widget, uint32_t lineY);
+static uint32_t getPreferedWidth(TLog_Widget* widget);
+static uint32_t setMaximumWidth(TLog_Widget* widget, uint32_t maxWidth, uint32_t screenHeight);
+static void drawLine(TLog_Widget* widget, uint32_t lineY);
 
 /** @brief Label widget functions. */
 static const TLog_Widget_Data TLOG_LABEL_DATA = {
@@ -88,7 +88,7 @@ TLog_Label* TLog_Label_Create(apr_pool_t* pool, char* text) {
     return NULL;
 }
 
-static uint32_t getPreferedWidth(void* widget) {
+static uint32_t getPreferedWidth(TLog_Widget* widget) {
     TLog_Label* label = (TLog_Label*) widget;
     
     uint32_t preferedWidth = 0;
@@ -108,7 +108,7 @@ static uint32_t getPreferedWidth(void* widget) {
     return preferedWidth;
 }
 
-static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screenHeight) {
+static uint32_t setMaximumWidth(TLog_Widget* widget, uint32_t maxWidth, uint32_t screenHeight) {
     TLog_Label* label = (TLog_Label*) widget;
 
     apr_array_clear(label->lines);
@@ -134,7 +134,7 @@ static uint32_t setMaximumWidth(void* widget, uint32_t maxWidth, uint32_t screen
     return label->lines->nelts;
 }
 
-static void drawLine(void* widget, uint32_t lineY) {
+static void drawLine(TLog_Widget* widget, uint32_t lineY) {
     TLog_Label* label = (TLog_Label*) widget;
     TLog_Label_Line* line = &APR_ARRAY_IDX(label->lines, lineY, TLog_Label_Line);
     addnstr(line->start, line->end - line->start);

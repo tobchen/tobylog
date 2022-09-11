@@ -30,13 +30,16 @@ typedef enum tlog_widget_action {
     TLOG_WIDGET_ACTION_TAB
 } TLog_Widget_Action;
 
+/** @brief General widget. */
+typedef struct tlog_widget TLog_Widget;
+
 /**
  * @brief Returns a widget's prefered width.
  * 
  * @param widget The widget to query
  * @return The widget's prefered width, or 0 on error
  */
-typedef uint32_t (*TLog_Widget_GetPreferedWidth) (void* widget);
+typedef uint32_t (*TLog_Widget_GetPreferedWidth) (TLog_Widget* widget);
 
 /**
  * @brief Sets a widget's maximum width.
@@ -53,7 +56,7 @@ typedef uint32_t (*TLog_Widget_GetPreferedWidth) (void* widget);
  * @param screenHeight Screen height
  * @return The widget's height, or 0 on error
  */
-typedef uint32_t (*TLog_Widget_SetMaximumWidth) (void* widget, uint32_t maxWidth, uint32_t screenHeight);
+typedef uint32_t (*TLog_Widget_SetMaximumWidth) (TLog_Widget* widget, uint32_t maxWidth, uint32_t screenHeight);
 
 /**
  * @brief Draws a widget's line to the screen.
@@ -66,7 +69,7 @@ typedef uint32_t (*TLog_Widget_SetMaximumWidth) (void* widget, uint32_t maxWidth
  * @param widget The widget to query
  * @param lineY Widget's line to store 
  */
-typedef void (*TLog_Widget_DrawLine) (void* widget, uint32_t lineY);
+typedef void (*TLog_Widget_DrawLine) (TLog_Widget* widget, uint32_t lineY);
 
 /**
  * @brief Notifies a widget of having focus.
@@ -76,7 +79,7 @@ typedef void (*TLog_Widget_DrawLine) (void* widget, uint32_t lineY);
  * @param cursorX Where to store the cursor X position in widget space
  * @param cursorY Where to store the cursor Y position in widget space
  */
-typedef void (*TLog_Widget_SetFocus) (void* widget, bool fromAbove, uint32_t* cursorX, uint32_t* cursorY);
+typedef void (*TLog_Widget_SetFocus) (TLog_Widget* widget, bool fromAbove, uint32_t* cursorX, uint32_t* cursorY);
 
 /**
  * @brief Sends a character to a widget.
@@ -88,7 +91,7 @@ typedef void (*TLog_Widget_SetFocus) (void* widget, bool fromAbove, uint32_t* cu
  * @param dirtyStart Index of first dirty line
  * @param dirtyEnd Index after last dirty line
  */
-typedef void (*TLog_Widget_PutChar) (void* widget, char ch,
+typedef void (*TLog_Widget_PutChar) (TLog_Widget* widget, char ch,
         uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd);
 
 /**
@@ -102,7 +105,7 @@ typedef void (*TLog_Widget_PutChar) (void* widget, char ch,
  * @param dirtyEnd Index after last dirty line
  * @return TRUE if action was consumed, or FALSE else
  */
-typedef bool (*TLog_Widget_PutAction) (void* widget, TLog_Widget_Action action,
+typedef bool (*TLog_Widget_PutAction) (TLog_Widget* widget, TLog_Widget_Action action,
         uint32_t* cursorX, uint32_t* cursorY, uint32_t* dirtyStart, uint32_t* dirtyEnd);
 
 /** @brief Common widget data. */
@@ -135,9 +138,9 @@ typedef struct tlog_widget_data {
 
 
 /** @brief General widget. */
-typedef struct tlog_widget {
+struct tlog_widget {
     /** @brief @copybrief TLog_Widget_Data */
     TLog_Widget_Data* data;
-} TLog_Widget;
+};
 
 #endif
