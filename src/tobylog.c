@@ -54,18 +54,18 @@ static bool drawLines(TLog_Widget* widget, uint32_t widgetY, uint32_t fromY, uin
 static bool getAction(int input, TLog_Widget_Action* action);
 
 // TODO Document
-static bool getPrevFocusableWidget(TLog_Widget** widgets, size_t start, size_t* prev);
+static bool getPrevFocusableWidget(TLog_Widget** widgets, TLog_Widget** start, TLog_Widget*** prev);
 
 // TODO Document
-static void getNextFocusableWidget(TLog_Widget** widgets, size_t widgetCount, size_t start, size_t* next);
+static void getNextFocusableWidget(TLog_Widget** start, TLog_Widget*** next);
 
 // TODO Document
-static void scrollUpToWidget(TLog_Widget** widgets, uint32_t* heights, uint32_t screenHeight,
-        size_t* currentWidget, uint32_t* currentWidgetY, size_t targetWidget);
+static void scrollUpToWidget(TLog_Widget** widgets, uint32_t screenHeight,
+        TLog_Widget*** currentWidget, uint32_t* currentWidgetY, TLog_Widget** targetWidget);
 
 // TODO Document
-static void scrollDownToWidget(TLog_Widget** widgets, uint32_t* heights, uint32_t screenHeight,
-        size_t* currentWidget, uint32_t* currentWidgetY, size_t targetWidget);
+static void scrollDownToWidget(TLog_Widget** widgets, uint32_t screenHeight,
+        TLog_Widget*** currentWidget, uint32_t* currentWidgetY, TLog_Widget** targetWidget);
 
 TLog_Result TLog_Init(apr_pool_t* pool) {
     if (isInitialized) {
@@ -98,8 +98,8 @@ TLog_Result TLog_Init(apr_pool_t* pool) {
 TLog_Result TLog_Run(TLog_Widget** widgets) {
     uint32_t screenWidth, screenHeight;
     uint32_t maxWidth;
-    size_t currentWidget;
-    size_t nextWidget;
+    TLog_Widget** currentWidget;
+    TLog_Widget** nextWidget;
     uint32_t currentWidgetY; // in screen space
     uint32_t cursorX, cursorY;
 
@@ -111,27 +111,21 @@ TLog_Result TLog_Run(TLog_Widget** widgets) {
         goto immediate_success;
     }
 
-    size_t widgetCount;
-    for (widgetCount = 0; widgets[widgetCount]; ++widgetCount);
-    if (widgetCount == 0) {
-        goto immediate_success;
-    }
-
     /************** Widget Size Calculation **************/
 
     screenWidth = COLS;
     screenHeight = LINES;
 
     maxWidth = 0;
-    for (size_t i = 0; i < widgetCount; ++i) {
-        uint32_t widgetWidth = widgets[i]->data->getPreferedWidth(widgets[i]);
+    for (TLog_Widget** iter = widgets; *iter; ++iter) {
+        uint32_t widgetWidth = (*iter)->data->getPreferedWidth(*iter);
         maxWidth = widgetWidth > maxWidth ? widgetWidth : maxWidth;
     }
     maxWidth = screenWidth - 1 < maxWidth ? screenWidth - 1 : maxWidth;
 
     apr_array_clear(heights);
-    for (size_t i = 0; i < widgetCount; ++i) {
-        size_t height = widgets[i]->data->setMaximumWidth(widgets[i], maxWidth, screenHeight);
+    for (TLog_Widget** iter = widgets; *iter; ++iter) {
+        uint32_t height = (*iter)->data->setMaximumWidth(*iter, maxWidth, screenHeight);
         if (height == 0) {
             goto fail;
         } else if (height > screenHeight) {
@@ -145,48 +139,48 @@ TLog_Result TLog_Run(TLog_Widget** widgets) {
 
     attrset(A_NORMAL);
     clear();
-    for (uint32_t i = 0, widgetY = 0; i < widgetCount; widgetY += APR_ARRAY_IDX(heights, i, uint32_t), ++i) {
-        if (!drawLines(widgets[i], widgetY, 0, APR_ARRAY_IDX(heights, i, uint32_t), screenHeight)) {
+    for (currentWidget = widgets, currentWidgetY = 0; *currentWidget; ++currentWidget) {
+        uint32_t height = APR_ARRAY_IDX(heights, currentWidget - widgets, uint32_t);
+        if (!drawLines(*currentWidget, currentWidgetY, 0, height, screenHeight)) {
             break;
         }
+        currentWidgetY += height;
     }
 
     /************** Find Focusable Widget **************/
 
-    currentWidget = 0;
+    currentWidget = widgets;
     currentWidgetY = 0;
-    getNextFocusableWidget(widgets, widgetCount, currentWidget, &nextWidget);
-    if (nextWidget < widgetCount) {
-        scrollDownToWidget(widgets, (uint32_t*) heights->elts, screenHeight, &currentWidget, &currentWidgetY, nextWidget);
-        widgets[currentWidget]->data->setFocus(widgets[currentWidget], 1, &cursorX, &cursorY);
+    getNextFocusableWidget(currentWidget, &nextWidget);
+    if (nextWidget) {
+        scrollDownToWidget(widgets, screenHeight, &currentWidget, &currentWidgetY, nextWidget);
+        (*currentWidget)->data->setFocus(*currentWidget, 1, &cursorX, &cursorY);
         move(currentWidgetY + cursorY, cursorX);
     }
 
     refresh();
 
-    if (nextWidget >= widgetCount) {
+    if (!nextWidget) {
         goto finished_success;
     }
 
     /************** Action **************/
 
     while (true) {
-        TLog_Widget* widget = (TLog_Widget*) widgets[currentWidget];
-
         uint32_t dirtyStart = 0;
         uint32_t dirtyEnd = 0;
 
         int input = getch();
         TLog_Widget_Action action;
-        if (input >= 32 && input <= 126 && widget->data->putChar) {
-            widget->data->putChar(widget, (char) input, &cursorX, &cursorY, &dirtyStart, &dirtyEnd);
+        if (input >= 32 && input <= 126 && (*currentWidget)->data->putChar) {
+            (*currentWidget)->data->putChar(*currentWidget, (char) input, &cursorX, &cursorY, &dirtyStart, &dirtyEnd);
         } else if (getAction(input, &action) && 
-                (!widget->data->putAction
-                        || !widget->data->putAction(widget, action, &cursorX, &cursorY, &dirtyStart, &dirtyEnd))) {
+                (!(*currentWidget)->data->putAction
+                        || !(*currentWidget)->data->putAction(*currentWidget, action, &cursorX, &cursorY, &dirtyStart, &dirtyEnd))) {
             goto take_action;
         }
 
-        drawLines(widget, currentWidgetY, dirtyStart, dirtyEnd, screenHeight);
+        drawLines(*currentWidget, currentWidgetY, dirtyStart, dirtyEnd, screenHeight);
 
         move(currentWidgetY + cursorY, cursorX);
         refresh();
@@ -198,22 +192,20 @@ TLog_Result TLog_Run(TLog_Widget** widgets) {
         } else if (action == TLOG_WIDGET_ACTION_ESC) {
             goto finished_cancel;
         } else if (action == TLOG_WIDGET_ACTION_UP) {
-            size_t prevWidget;
-            if (currentWidget > 0 && getPrevFocusableWidget(widgets, currentWidget - 1, &prevWidget)) {
-                scrollUpToWidget(widgets, (uint32_t*) heights->elts, screenHeight,
+            TLog_Widget** prevWidget;
+            if (currentWidget > widgets && getPrevFocusableWidget(widgets, currentWidget - 1, &prevWidget)) {
+                scrollUpToWidget(widgets, screenHeight,
                         &currentWidget, &currentWidgetY, prevWidget);
-                widget = (TLog_Widget*) widgets[currentWidget];
             }
-            widget->data->setFocus(widget, 0, &cursorX, &cursorY);
+            (*currentWidget)->data->setFocus(*currentWidget, 0, &cursorX, &cursorY);
             move(currentWidgetY + cursorY, cursorX);
         } else if (action == TLOG_WIDGET_ACTION_DOWN) {
-            getNextFocusableWidget(widgets, widgetCount, currentWidget + 1, &nextWidget);
-            if (nextWidget < widgetCount) {
-                scrollDownToWidget(widgets, (uint32_t*) heights->elts, screenHeight,
+            getNextFocusableWidget(currentWidget + 1, &nextWidget);
+            if (nextWidget) {
+                scrollDownToWidget(widgets, screenHeight,
                         &currentWidget, &currentWidgetY, nextWidget);
-                widget = (TLog_Widget*) widgets[currentWidget];
             }
-            widget->data->setFocus(widget, 1, &cursorX, &cursorY);
+            (*currentWidget)->data->setFocus(*currentWidget, 1, &cursorX, &cursorY);
             move(currentWidgetY + cursorY, cursorX);
         }
         refresh();
@@ -277,49 +269,53 @@ static bool getAction(int input, TLog_Widget_Action* action) {
     return true;
 }
 
-static bool getPrevFocusableWidget(TLog_Widget** widgets, size_t start, size_t* prev) {
+static bool getPrevFocusableWidget(TLog_Widget** widgets, TLog_Widget** start, TLog_Widget*** prev) {
     while (1) {
-        if ((widgets[start])->data->setFocus) {
+        if ((*start)->data->setFocus) {
             *prev = start;
             return true;
-        } else if (start == 0) {
+        } else if (start == widgets) {
             return false;
         }
         --start;
     }
 }
 
-static void getNextFocusableWidget(TLog_Widget** widgets, size_t widgetCount, size_t start, size_t* next) {
+static void getNextFocusableWidget(TLog_Widget** start, TLog_Widget*** next) {
     for (*next = start;
-            *next < widgetCount && !widgets[*next]->data->setFocus;
+            **next && !(**next)->data->setFocus;
             ++(*next));
 }
 
-static void scrollUpToWidget(TLog_Widget** widgets, uint32_t* heights, uint32_t screenHeight,
-        size_t* currentWidget, uint32_t* currentWidgetY, size_t targetWidget) {
+static void scrollUpToWidget(TLog_Widget** widgets, uint32_t screenHeight,
+        TLog_Widget*** currentWidget, uint32_t* currentWidgetY, TLog_Widget** targetWidget) {
     while (*currentWidget > targetWidget) {
         --(*currentWidget);
-        if (heights[*currentWidget] > *currentWidgetY) {
-            int todo = heights[*currentWidget] - *currentWidgetY;
+        uint32_t height = APR_ARRAY_IDX(heights, *currentWidget - widgets, uint32_t);
+
+        if (height > *currentWidgetY) {
+            int todo = height - *currentWidgetY;
             scrl(-todo);
             *currentWidgetY = 0;
-            drawLines(widgets[*currentWidget], *currentWidgetY, 0, heights[*currentWidget], screenHeight);
+            drawLines(**currentWidget, *currentWidgetY, 0, height, screenHeight);
         } else {
-            *currentWidgetY -= heights[*currentWidget];
+            *currentWidgetY -= height;
         }
     }
 }
 
-static void scrollDownToWidget(TLog_Widget** widgets, uint32_t* heights, uint32_t screenHeight,
-        size_t* currentWidget, uint32_t* currentWidgetY, size_t targetWidget) {
+static void scrollDownToWidget(TLog_Widget** widgets, uint32_t screenHeight,
+        TLog_Widget*** currentWidget, uint32_t* currentWidgetY, TLog_Widget** targetWidget) {
     while (targetWidget > *currentWidget) {
-        *currentWidgetY += heights[(*currentWidget)++];
+        *currentWidgetY += APR_ARRAY_IDX(heights, *currentWidget - widgets, uint32_t);
+        ++(*currentWidget);
+        uint32_t height = APR_ARRAY_IDX(heights, *currentWidget - widgets, uint32_t);
 
-        if (*currentWidgetY + heights[*currentWidget] > screenHeight) {
-            uint32_t todo = *currentWidgetY + heights[*currentWidget] - screenHeight;
+        if (*currentWidgetY + height > screenHeight) {
+            uint32_t todo = *currentWidgetY + height - screenHeight;
             scrl(todo);
-            *currentWidgetY = screenHeight - heights[*currentWidget];
-            drawLines(widgets[*currentWidget], *currentWidgetY, 0, heights[*currentWidget], screenHeight);
+            *currentWidgetY = screenHeight - height;
+            drawLines(**currentWidget, *currentWidgetY, 0, height, screenHeight);
         }
     }
 }
